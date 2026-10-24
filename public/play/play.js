@@ -392,7 +392,7 @@ const isFullscreen = () => Boolean(document.fullscreenElement || document.webkit
 function syncFullscreenButtons() {
   const full = isFullscreen();
   for (const b of document.querySelectorAll('.fs-toggle')) {
-    b.textContent = b.classList.contains('fs-big') ? (full ? '✕ EXIT FULL SCREEN' : '⛶ FULL SCREEN') : full ? '✕' : '⛶';
+    b.textContent = full ? '✕' : '⛶';
     b.setAttribute('aria-label', full ? 'Exit full screen' : 'Enter full screen');
     b.setAttribute('aria-pressed', String(full));
   }

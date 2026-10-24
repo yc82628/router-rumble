@@ -93,7 +93,7 @@ input:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 @keyframes pulse { to { box-shadow: 0 0 6px rgba(255, 79, 216, 0.2); } }
 
 /* ---------- controller */
-.ap-head { display: flex; align-items: center; justify-content: space-between; }
+.ap-head { display: flex; align-items: center; justify-content: space-between; padding-right: 54px; }
 #c-router { font-size: 28px; font-weight: 700; color: var(--bright); letter-spacing: 2px; }
 .chip { padding: 6px 10px; border: 2px solid currentColor; border-radius: 6px; font-weight: 700; letter-spacing: 2px; font-size: 14px; }
 .chip.ok { color: var(--green); }
@@ -217,7 +217,7 @@ input:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .mult { color: var(--yellow); font-weight: 700; }
 .fs-toggle { font: inherit; color: var(--cyan); background: transparent; border: 1px solid var(--cyan); border-radius: 6px; touch-action: manipulation; }
 .fs-small { padding: 2px 8px; font-size: 16px; }
-.fs-big { margin-top: 12px; padding: 12px 18px; font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+.fs-top { position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 25; width: 44px; height: 40px; padding: 0; font-size: 22px; }
 .standalone .fs-toggle { display: none; } /* already full screen (home-screen app) */
 #toast {
   position: fixed;
