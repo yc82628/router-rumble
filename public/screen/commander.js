@@ -3,7 +3,7 @@
 // null or doesn't arrive in time, the canned line for that moment is shown instead.
 // Owner C: personality lives in CANNED.
 
-const AI_MOMENTS = new Set(['levelStart', 'event', 'bossArrive', 'passed', 'failed']);
+const AI_MOMENTS = new Set(['levelStart', 'event', 'bossArrive', 'bossReturn', 'passed', 'failed']);
 const CLIENT_TIMEOUT_MS = 3500; // server gives up at 3 s; this covers a dead server
 const MIN_SHOW_MS = 2800;
 const QUIP_GAP_MS = { crash: 5000, botAttached: 8000 }; // frequent moments don't spam
@@ -38,9 +38,12 @@ const CANNED = {
     'We have a pest on {router}. FIX it. With prejudice.',
   ],
   bossArrive: [
-    'That is ULTRON. It wants our bandwidth. Everyone, FIX FIX FIX!',
+    'That is {event}. It wants our bandwidth. Everyone, FIX FIX FIX!',
     'Big robot incoming. Its droids are with it. All hands on FIX!',
+  ],
+  bossReturn: [
     'It is back. Of course it is back. Tap like the internet depends on it!',
+    '{event} rebooted, and it brought more droids. FIX FIX FIX!',
   ],
   bossDown: [
     'It is down! It is never really down, is it. Get ready.',

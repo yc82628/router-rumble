@@ -110,6 +110,7 @@ function toLobby() {
   levelIndex = 0;
   buildPreview();
   renderer.clearFx();
+  releaseGrab(); // a device picked with the mouse belongs to the old level
   $('overlay-end').hidden = true;
   $('overlay-countdown').hidden = true;
   setPhase(PHASES.LOBBY);
@@ -131,6 +132,7 @@ function startLevel(i) {
   tick(state, 0, []);
   inputs = [];
   renderer.clearFx();
+  releaseGrab(); // device ids restart each level, so an old selection could move the wrong device
   commander.setMood('calm');
   $('overlay-end').hidden = true;
   $('countdown-level').textContent = `LEVEL ${levelIndex + 1} // ${level.name.toUpperCase()}`;
@@ -283,7 +285,7 @@ function onSimEvent(e) {
       log(`${e.name} round ${e.round} → ${e.router}`, 'event');
       sfx.alarm();
       commander.setMood('alarm');
-      commander.react('bossArrive', aiContext({ event: e.name, detail: `round ${e.round} of ${e.round + e.lives - 1}` }));
+      commander.react(e.round > 1 ? 'bossReturn' : 'bossArrive', aiContext({ event: e.name, detail: `round ${e.round} of ${e.round + e.lives - 1}` }));
       break;
     case 'bossHop':
       log(`${e.name} jumped to ${e.router}`, 'event');

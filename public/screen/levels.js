@@ -22,13 +22,14 @@ export const LEVELS = [
     duration: 90,
     routers: 3,
     capacity: 100,
-    demand: [42, 54, 40],
+    // Tutorial pace, but not a free win: a team that does nothing usually loses or earns 0-2 stars.
+    demand: [47, 64, 43],
     wave: { amp: 0.15, period: 18 },
-    ramp: 0.05,
-    surges: { first: 18, every: 14, peak: [1.5, 1.9], dur: [6, 9] },
-    joins: { first: 30, every: 24, max: 2, kinds: ['phone', 'laptop', 'tv'], demandPerWeight: 6 },
+    ramp: 0.08,
+    surges: { first: 14, every: 11, peak: [1.6, 2.1], dur: [6, 10] },
+    joins: { first: 26, every: 20, max: 2, kinds: ['phone', 'laptop', 'tv'], demandPerWeight: 6 },
     spikes: [{ at: 58, dur: 8, mul: 1.2, router: 1 }], // a gentle console update spike
-    bots: { first: 45, every: 28, hp: 2, drain: 10 },
+    bots: { first: 36, every: 22, hp: 2, drain: 12 },
     events: null,
     devices: [
       ['phone', 'laptop', 'tv'],
@@ -39,7 +40,7 @@ export const LEVELS = [
       { at: 1, text: 'Each phone runs one access point. Watch your load bar.' },
       { at: 14, text: 'Overloaded? PUSH traffic to a neighbour, but don\'t melt their AP.' },
       { at: 26, text: 'Devices grow when they need more traffic. Move a big one to a quieter AP!' },
-      { at: 40, text: 'A minion is coming. Tap FIX on its AP to zap it.' },
+      { at: 34, text: 'A minion is coming. Tap FIX on its AP to zap it.' },
       { at: 54, text: 'BOOST = +50% capacity for 5 s. FIX also revives a crashed AP.' },
     ],
   },
@@ -81,9 +82,10 @@ export const LEVELS = [
     duration: 90,
     routers: 5,
     capacity: 100,
-    demand: [55, 65, 75, 65, 50],
+    // Tuned so a coordinated 2-10 player team usually clears it; idle teams always lose.
+    demand: [50, 58, 64, 58, 46],
     wave: { amp: 0.18, period: 12 },
-    ramp: 0.1,
+    ramp: 0.08,
     surges: { first: 4, every: 7, peak: [1.8, 2.4], dur: [8, 12] },
     joins: { first: 8, every: 14, max: 4, kinds: ['phone', 'laptop', 'tv', 'console'], demandPerWeight: 6 },
     spikes: [
@@ -92,8 +94,8 @@ export const LEVELS = [
       { at: 75, dur: 8, mul: 1.5 },
     ],
     // Faster, tougher viruses arrive amid more frequent chaos events.
-    bots: { first: 10, every: 12, hp: 4, drain: 16, virus: true, spreadAfter: 8, spreadLimit: 1 },
-    events: { first: 12, every: 20, max: 4, pool: ALL_EVENTS },
+    bots: { first: 12, every: 14, hp: 4, drain: 12, virus: true, spreadAfter: 10, spreadLimit: 1 },
+    events: { first: 15, every: 24, max: 3, pool: ALL_EVENTS },
     devices: [
       ['phone', 'phone', 'laptop'],
       ['laptop', 'tv', 'phone'],
