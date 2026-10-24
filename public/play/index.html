@@ -13,6 +13,8 @@
     <h1>ROUTER<br><span>RUMBLE</span></h1>
     <p class="tag">NETOPS FIELD UNIT</p>
     <form id="join-form" autocomplete="off">
+      <label for="room">Room code</label>
+      <input id="room" class="room-input" maxlength="4" autocapitalize="characters" spellcheck="false" required>
       <label for="name">Operator name</label>
       <input id="name" maxlength="12" autocapitalize="words" enterkeyhint="go" spellcheck="false" required>
       <button id="join-btn" type="submit">JOIN NETWORK</button>
@@ -25,6 +27,7 @@
     <h2 id="wait-title">You're on the network.</h2>
     <p>Your phone is now on the network.<br><b>Don't crash it.</b></p>
     <p id="wait-ap" class="muted"></p>
+    <p id="wait-room" class="muted"></p>
     <p class="blink">Waiting for host…</p>
   </section>
 

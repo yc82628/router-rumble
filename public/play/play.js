@@ -10,36 +10,48 @@ const store = {
   set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
 };
 
-let me = null; // { playerId, name }
+let me = null; // { playerId, name, room }
 let phase = { phase: PHASES.LOBBY };
 let view = null; // latest PlayerState
 let lastStatus = 'ok';
+let hostOnline = true;
 
 const vibrate = (pattern) => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
 
 // ------------------------------------------------------------------ join
 
+// The QR code links to /play?room=CODE, so most players never type the code.
+const urlRoom = new URLSearchParams(location.search).get('room');
+$('room').value = (urlRoom || store.get('pp:room') || '').toUpperCase().slice(0, 4);
 $('name').value = store.get('pp:name') || '';
+$('room').addEventListener('input', () => {
+  $('room').value = $('room').value.toUpperCase().replace(/[^A-Z]/g, '');
+});
 
 $('join-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const name = $('name').value.trim();
-  if (!name) return;
-  join(name, store.get('pp:id'));
+  const room = $('room').value.trim();
+  if (!name || !room) return;
+  // Reuse my player id only for the room it belongs to (rejoin after a reload).
+  join(name, room, store.get('pp:room') === room ? store.get('pp:id') : null);
 });
 
-function join(name, playerId) {
+function join(name, room, playerId) {
   $('join-btn').disabled = true;
   $('join-error').textContent = '';
-  socket.timeout(5000).emit(EV.PLAYER_JOIN, { name, playerId: playerId || undefined }, (err, res) => {
+  socket.timeout(5000).emit(EV.PLAYER_JOIN, { room, name, playerId: playerId || undefined }, (err, res) => {
     $('join-btn').disabled = false;
     if (err || !res || res.error) {
-      $('join-error').textContent = res?.error || 'Could not reach the game. Same Wi-Fi as the big screen?';
+      $('join-error').textContent = res?.error || 'Could not reach the game. Check your connection and try again.';
+      if (me && res?.error) leaveRoom(res.error); // my room vanished while I was away
       return;
     }
     me = res;
+    hostOnline = res.hostOnline;
     store.set('pp:name', res.name);
     store.set('pp:id', res.playerId);
+    store.set('pp:room', res.room);
     $('name').blur();
     requestWakeLock();
     render();
@@ -57,8 +69,22 @@ document.addEventListener('visibilitychange', () => {
 
 socket.on('connect', () => {
   $('conn').hidden = true;
-  if (me) join(me.name, me.playerId); // rejoin with the same id after a drop
+  if (me) join(me.name, me.room, me.playerId); // rejoin with the same id after a drop
 });
+socket.on(EV.HOST_STATUS, ({ online }) => {
+  hostOnline = online;
+  render();
+});
+socket.on(EV.ROOM_CLOSED, ({ reason } = {}) => leaveRoom(reason || 'The game has ended.'));
+
+function leaveRoom(message) {
+  me = null;
+  view = null;
+  phase = { phase: PHASES.LOBBY };
+  document.body.classList.remove('crashed');
+  render();
+  $('join-error').textContent = message;
+}
 socket.on('disconnect', () => {
   if (me) $('conn').hidden = false;
 });
@@ -162,12 +188,14 @@ function render() {
   if (p === PHASES.LOBBY || !view) {
     show('view-wait');
     $('wait-title').textContent = `You're on the network, ${me.name}.`;
+    $('wait-room').textContent = `Room ${me.room}`;
     $('wait-ap').textContent = view?.routerName ? `You'll be running ${view.routerName}.` : '';
   } else {
     show('view-control');
   }
 
-  if (p === PHASES.COUNTDOWN) overlay('GET READY', levelLabel);
+  if (!hostOnline) overlay('HOST OFFLINE', 'The big screen dropped. Hang on, it usually comes right back…', 'bad');
+  else if (p === PHASES.COUNTDOWN) overlay('GET READY', levelLabel);
   else if (p === PHASES.LEVEL_END) overlay('LEVEL CLEARED', 'Nice routing. Look at the big screen for the report.', 'good');
   else if (p === PHASES.GAME_OVER) {
     overlay(

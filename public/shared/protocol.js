@@ -2,11 +2,16 @@
 // Imported by server.js (Node), the screen and the phone (browser ES modules).
 // Change event names or payloads ONLY here, and tell the team.
 
+// Rooms: every big screen hosts its own game in a room with a 4-letter code (shown on screen and
+// carried by the QR code as /play?room=CODE). Phones join a room by code. All events below are
+// scoped to the sender's room by the server.
+
 export const EV = Object.freeze({
-  // screen → server  {}            The latest screen to say hello becomes the "primary" screen.
+  // screen → server  { roomCode? }   roomCode = reclaim my room after a reload/reconnect.
+  //                  ack → { roomCode, joinUrl, qr, maxPlayers, ai, playerIds } | { error }
   SCREEN_HELLO: 'screen:hello',
-  // phone → server   { name, playerId? }   playerId = rejoin after a reload/reconnect.
-  //                  ack → { playerId, name } | { error }
+  // phone → server   { room, name, playerId? }   playerId = rejoin after a reload/reconnect.
+  //                  ack → { playerId, name, room, hostOnline } | { error }
   PLAYER_JOIN: 'player:join',
   // server → screen  { playerId, name }
   PLAYER_JOINED: 'player:joined',
@@ -15,8 +20,14 @@ export const EV = Object.freeze({
   // phone → server   { action, deviceId?, dir? }  →  server → screen { playerId, action, deviceId?, dir? }
   //                  (server stamps playerId; deviceId/dir only for moveDevice)
   PLAYER_INPUT: 'player:input',
-  // screen → server → one phone   PlayerState (see below)
+  // screen → server   PlayerState[]   one batch per tick for the whole room
+  PLAYER_STATES: 'player:states',
+  // server → one phone   PlayerState (see below), split out of the batch
   PLAYER_STATE: 'player:state',
+  // server → phones   { online }   the room's big screen dropped / came back
+  HOST_STATUS: 'host:status',
+  // server → phones   { reason }   the room is gone (host left for good); go back to the join form
+  ROOM_CLOSED: 'room:closed',
   // screen → server → all phones  { phase, level, levelName?, result? }
   GAME_PHASE: 'game:phase',
   // screen → server  { requestId, context }

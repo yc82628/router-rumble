@@ -113,6 +113,11 @@ aside { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 #join-panel img { display: block; width: 100%; max-width: 280px; margin: 0 auto 8px; image-rendering: pixelated; border: 1px solid var(--line); }
 #join-panel code, #join-mini code { display: block; font-size: 12px; color: var(--cyan); word-break: break-all; text-align: center; }
 #join-panel p { font-size: 12px; line-height: 1.5; }
+.room-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }
+.room-line b { font-size: 30px; letter-spacing: 6px; color: var(--bright); text-shadow: 0 0 12px rgba(61, 242, 255, 0.5); }
+#room-count { margin-left: auto; color: var(--magenta); letter-spacing: 0; }
+.mini .room-line { margin-bottom: 2px; }
+.mini .room-line b { font-size: 18px; letter-spacing: 3px; }
 .mini { display: flex; gap: 10px; align-items: center; }
 .mini img { width: 84px; height: 84px; image-rendering: pixelated; flex: none; }
 .mini code { text-align: left !important; }

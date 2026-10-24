@@ -201,3 +201,4 @@ input:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 #phase-sub { font-size: 16px; line-height: 1.5; color: var(--text); }
 #conn { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px; text-align: center; background: var(--red); color: var(--bg); font-weight: 700; z-index: 20; }
 #conn[hidden] { display: none; }
+.room-input { letter-spacing: 8px; text-transform: uppercase; font-weight: 700; }

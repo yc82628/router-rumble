@@ -27,7 +27,7 @@ export const TUNING = {
   maxShareSteps: 5, // shares are stored in tenths: 0..5 → 0%..50%
   warnRatio: 0.85,
   playerDeviceDemand: 3, // each joined phone adds this much demand to its AP
-  perPlayerScale: 0.12, // brief suggests ~0.2 per player beyond 2; AP count also grows with players
+  perPlayerScale: 0.03, // extra demand per player beyond 2 (more players already means more APs to juggle)
   cableFixTaps: 10,
   reconnectSeconds: 1, // a moved device is offline this long
   newDeviceGlow: 4, // seconds a freshly joined device is highlighted

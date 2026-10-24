@@ -15,8 +15,27 @@ npm start
 ```
 
 - **Big screen:** open `http://localhost:3000/` on the laptop that's connected to the projector.
-- **Phones:** scan the QR code in the lobby (it points to `http://<laptop-LAN-IP>:3000/play`).
+  It opens a **room** with a 4-letter code (shown big in the lobby).
+- **Phones:** scan the room's QR code (it points to `http://<laptop-LAN-IP>:3000/play?room=CODE`),
+  or open `/play` and type the code.
 - Press **START SHIFT** (or `S`) once everyone has joined.
+
+### Rooms and limits
+
+- Every big screen hosts its own game. Open a second screen (another browser tab or another
+  laptop) and you get a second room with its own code, QR and players. Rooms never mix.
+- **Up to 10 players per room** (`MAX_PLAYERS_PER_ROOM`). Player 11 is told the room is full.
+  More players = more APs (up to 8) and a little more traffic, and more people mashing FIX on the boss.
+- **Up to 30 rooms per server** (`MAX_ROOMS`).
+- Reloading the big screen keeps its room and players. If the big screen disappears, phones show
+  "host offline"; after 3 minutes without it the room closes and phones go back to the join form.
+- A phone that drops (screen lock, bad Wi-Fi) keeps its spot for 15 s and rejoins automatically.
+- Server protections: max 20 inputs/s per phone, 64 KB max message size, a broken message is
+  logged instead of crashing the server. `GET /api/health` shows rooms, players and memory.
+
+**Load test:** `npm run loadtest -- --rooms 25 --players 10 --seconds 20` simulates full rooms
+(screens sending state at 10 Hz, phones tapping 8×/s, a spammer, a 11th player). On a laptop,
+25 rooms × 10 phones (250 players) kept every phone at ~10 updates/s with ~100 MB of memory.
 
 Requires Node 20+. Optional: `cp .env.example .env` and fill in values.
 
@@ -36,6 +55,14 @@ Venue Wi-Fi often isolates clients from each other. In order of preference:
 3. **Wrong IP in the QR code** (VPN/virtual adapters): the server prints every candidate IP on
    startup. Set `PUBLIC_URL=http://<right-ip>:3000`.
 4. **Nothing works:** press `D` for demo mode (bots play) and use the backup video.
+
+### Playing over the internet (not just the same Wi-Fi)
+
+Deploy the server anywhere that runs Node 20 and WebSockets (Render, Railway, Fly.io, a VPS):
+build `npm install`, start `npm start`, and the host gives you `PORT`. Then open the deployed
+URL on the big screen; QR codes automatically point at that same address (or set `PUBLIC_URL`).
+Phones anywhere can join with the room code. Free tiers may sleep when idle: open the site a
+minute before the demo. For a quick test from the laptop, a tunnel (above) works the same way.
 
 ### AI Incident Commander
 
@@ -90,11 +117,10 @@ Phone (/play) ──socket.io──▶ server.js ──socket.io──▶ Screen
   buttons, private view  ◀──  relay only, QR, AI  ◀──  AUTHORITATIVE sim + render
 ```
 
-- **server.js**: static files, relays messages, assigns player IDs, QR code, AI proxy. No game logic.
-  A phone that drops gets 15 s to reconnect before it's removed. The most recent screen to
-  connect is the one whose state gets relayed, so keep only one screen tab open.
-- **Screen** runs the simulation at 10 Hz and renders at 60 fps. Sends each phone its private
-  state 10×/s.
+- **server.js**: rooms, relays messages within a room, assigns player IDs, QR codes, AI proxy.
+  No game logic, so it stays light even with many rooms.
+- **Screen** runs its room's simulation at 10 Hz and renders at 60 fps. Sends all phones'
+  private states as one batch 10×/s; the server splits it per phone.
 - **Phone** sends inputs, shows `player:state`, vibrates on crash.
 
 ### Files and owners
@@ -110,6 +136,7 @@ Phone (/play) ──socket.io──▶ server.js ──socket.io──▶ Screen
 ```
 router-rumble/
 ├── server.js
+├── scripts/loadtest.js         fake screens + phones to stress the server
 ├── public/shared/protocol.js   event names, actions, phases, PlayerState typedef
 ├── public/screen/
 │   ├── index.html, style.css   console layout (top bar, commander + log, map, operators)

@@ -11,6 +11,7 @@
     <header id="topbar">
       <div class="brand">ROUTER<span>RUMBLE</span><small>// netops console</small></div>
       <div id="demo-flag" class="flag" hidden>DEMO</div>
+      <div class="stat"><label>ROOM</label><b id="hud-room">····</b></div>
       <div class="stat"><label>LEVEL</label><b id="hud-level">1</b></div>
       <div class="stat"><label>TIME</label><b id="hud-time">1:30</b></div>
       <div class="stat health">
@@ -70,8 +71,9 @@
       <section class="panel lobby-only" id="join-panel">
         <h2>JOIN THE NETWORK</h2>
         <div class="body">
+          <div class="room-line">ROOM <b id="room-code">····</b> <span id="room-count"></span></div>
           <img id="qr-big" alt="QR code to join the game">
-          <code id="join-url">loading…</code>
+          <code id="join-url">opening a room…</code>
           <p>Scan, pick a name. Your phone becomes a device on the map.</p>
           <button id="btn-start" class="primary">START SHIFT ▶</button>
           <p class="muted small">S start · D demo bots · L skip level · K crash · E chaos event · M mute · Esc lobby</p>
@@ -89,7 +91,7 @@
         <h2>LATE? JOIN HERE</h2>
         <div class="body mini">
           <img id="qr-mini" alt="QR code to join the game">
-          <code id="join-url-mini"></code>
+          <div><div class="room-line">ROOM <b id="room-code-mini">····</b></div><code id="join-url-mini"></code></div>
         </div>
       </section>
     </aside>

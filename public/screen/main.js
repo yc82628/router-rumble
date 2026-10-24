@@ -299,9 +299,8 @@ setInterval(() => {
     }
   }
   renderer.hud(state);
-  for (const p of state.players) {
-    const view = playerView(state, p.id);
-    if (view) socket.emit(EV.PLAYER_STATE, view);
+  if (state.players.length && roomCode) {
+    socket.emit(EV.PLAYER_STATES, state.players.map((p) => playerView(state, p.id)).filter(Boolean));
   }
 }, 1000 / TICK_HZ);
 
@@ -315,16 +314,53 @@ function frame(now) {
 
 // ------------------------------------------------------------------ sockets
 
+// Each screen hosts one room. The code is kept per browser tab, so a reload reclaims the same room
+// (and its players), while a second tab opens a second room.
+let roomCode = null;
+const ROOM_KEY = 'rr:room';
+const savedRoom = () => {
+  try { return sessionStorage.getItem(ROOM_KEY); } catch { return null; }
+};
+
 socket.on('connect', () => {
-  if (phase === PHASES.LOBBY) {
-    roster.clear(); // the server re-sends everyone it knows
-    buildPreview();
-  }
-  socket.emit(EV.SCREEN_HELLO, {});
-  setPhase(phase);
-  loadJoinInfo();
+  socket.emit(EV.SCREEN_HELLO, { roomCode: roomCode || savedRoom() }, (res) => {
+    if (!res || res.error) {
+      $('join-url').textContent = res?.error || 'Could not open a room. Is the server running?';
+      return;
+    }
+    const sameRoom = res.roomCode === roomCode;
+    roomCode = res.roomCode;
+    try { sessionStorage.setItem(ROOM_KEY, roomCode); } catch { /* private mode */ }
+    maxPlayers = res.maxPlayers;
+    for (const id of ['room-code', 'hud-room', 'room-code-mini']) $(id).textContent = roomCode;
+    for (const id of ['qr-big', 'qr-mini']) $(id).src = res.qr;
+    for (const id of ['join-url', 'join-url-mini']) $(id).textContent = res.joinUrl;
+    $('ai-status').textContent = res.ai ? 'AI commander: online' : 'AI commander: canned lines';
+    if (!sameRoom || phase === PHASES.LOBBY) {
+      // New room (or still in the lobby): start clean, the server re-sends everyone in the room.
+      roster.clear();
+      if (phase === PHASES.LOBBY) buildPreview();
+      else toLobby();
+      log(`Room ${roomCode} is open. Up to ${maxPlayers} players.`, 'info');
+    } else {
+      // Same room mid-game: drop anyone who left while this screen was offline.
+      for (const id of [...roster.keys()]) {
+        if (!res.playerIds.includes(id)) {
+          roster.delete(id);
+          removePlayer(state, id);
+        }
+      }
+    }
+    setPhase(phase);
+    updateRoomCount();
+  });
 });
 socket.on('disconnect', () => log('Lost connection to server…', 'bad'));
+
+let maxPlayers = 10;
+function updateRoomCount() {
+  $('room-count').textContent = `${roster.size}/${maxPlayers} players`;
+}
 
 socket.on(EV.PLAYER_JOINED, ({ playerId, name }) => {
   if (roster.has(playerId)) return;
@@ -334,6 +370,7 @@ socket.on(EV.PLAYER_JOINED, ({ playerId, name }) => {
   log(`${name} joined the network`, 'join');
   sfx.join();
   commander.react('join', { name });
+  updateRoomCount();
 });
 
 socket.on(EV.PLAYER_LEFT, ({ playerId }) => {
@@ -343,6 +380,7 @@ socket.on(EV.PLAYER_LEFT, ({ playerId }) => {
   if (phase === PHASES.LOBBY) buildPreview();
   else removePlayer(state, playerId);
   log(`${p.name} left the network`, 'info');
+  updateRoomCount();
 });
 
 socket.on(EV.PLAYER_INPUT, ({ playerId, action, deviceId, dir }) => {
@@ -351,17 +389,6 @@ socket.on(EV.PLAYER_INPUT, ({ playerId, action, deviceId, dir }) => {
 });
 
 socket.on(EV.AI_LINE, (msg) => commander.onAILine(msg));
-
-async function loadJoinInfo() {
-  try {
-    const info = await (await fetch('/api/join-info')).json();
-    for (const id of ['qr-big', 'qr-mini']) if (info.qr) $(id).src = info.qr;
-    for (const id of ['join-url', 'join-url-mini']) $(id).textContent = info.url;
-    $('ai-status').textContent = info.ai ? 'AI commander: online' : 'AI commander: canned lines';
-  } catch {
-    $('join-url').textContent = 'Could not load join info';
-  }
-}
 
 // ------------------------------------------------------------------ mouse: move devices between APs
 // Drag a device onto any AP's column, or click a device and then click an AP's column.
