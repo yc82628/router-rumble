@@ -150,15 +150,15 @@ export function assignOwners(state) {
   }
 }
 
-export function addPlayer(state, { playerId, name }) {
+export function addPlayer(state, { playerId, name, color = '#ff4fd8', colorName = 'PINK' }) {
   if (state.players.some((p) => p.id === playerId)) return;
-  const player = { id: playerId, name, routerIds: [], activeRouter: null };
+  const player = { id: playerId, name, color, colorName, routerIds: [], activeRouter: null };
   state.players.push(player);
   assignOwners(state);
   // The player's phone shows up as a device on their own AP (or the emptiest one).
   const home = routerById(state, player.activeRouter) ||
     state.routers.reduce((best, r) => (playerDeviceCount(r) < playerDeviceCount(best) ? r : best));
-  home.devices.push(makeDevice(state, 'player', 0, { playerId, name }));
+  home.devices.push(makeDevice(state, 'player', 0, { playerId, name, playerColor: color, playerColorName: colorName }));
 }
 
 export const findDevice = (state, deviceId) => {
@@ -619,7 +619,14 @@ export function playerView(state, playerId) {
   if (!p) return null;
   const r = routerById(state, p.activeRouter);
   const left = state.duration - state.time;
-  const base = { playerId, health: Math.round(state.health), timeLeft: Number.isFinite(left) ? Math.ceil(Math.max(0, left)) : null };
+  const base = {
+    playerId,
+    playerName: p.name,
+    playerColor: p.color,
+    playerColorName: p.colorName,
+    health: Math.round(state.health),
+    timeLeft: Number.isFinite(left) ? Math.ceil(Math.max(0, left)) : null,
+  };
   if (!r) return { ...base, routerId: null, status: 'ok' };
 
   const leftR = state.routers[r.index - 1];
@@ -673,6 +680,8 @@ export function playerView(state, playerId) {
         id: d.id,
         kind: d.kind,
         label: d.kind === 'player' ? d.name : d.label || d.kind,
+        playerColor: d.playerColor,
+        playerColorName: d.playerColorName,
         demand: Math.round(d.demand),
         surging: d.surge > 0,
         isNew: d.isNew > 0,

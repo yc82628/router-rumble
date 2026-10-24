@@ -38,8 +38,23 @@ const commander = createCommander({
   },
 });
 
-/** playerId -> { playerId, name }, in join order */
+/** playerId -> { playerId, name, color, colorName }, in join order */
 const roster = new Map();
+const playerColorById = new Map();
+const PLAYER_COLORS = [
+  { name: 'CYAN', value: '#58e6ff' },
+  { name: 'CORAL', value: '#ff7185' },
+  { name: 'GOLD', value: '#ffd447' },
+  { name: 'VIOLET', value: '#b38bff' },
+  { name: 'LIME', value: '#9cff6e' },
+  { name: 'ORANGE', value: '#ff9f43' },
+  { name: 'BLUE', value: '#7097ff' },
+  { name: 'PINK', value: '#ff70c8' },
+  { name: 'MINT', value: '#54f0bb' },
+  { name: 'LILAC', value: '#df9dff' },
+  { name: 'AQUA', value: '#48c8be' },
+  { name: 'RED', value: '#ff526b' },
+];
 let phase = PHASES.LOBBY;
 let levelIndex = 0;
 let state = null;
@@ -51,6 +66,16 @@ let botClock = 0;
 let lastChatter = 0;
 
 const rosterList = () => [...roster.values()];
+function colorForPlayer(playerId) {
+  const saved = playerColorById.get(playerId);
+  const used = new Set(rosterList().map((p) => p.color));
+  if (saved && !used.has(saved.value)) return saved;
+  const available = PLAYER_COLORS.filter((c) => !used.has(c.value));
+  const pool = available.length ? available : PLAYER_COLORS;
+  const color = pool[Math.floor(Math.random() * pool.length)];
+  playerColorById.set(playerId, color);
+  return color;
+}
 const log = (text, kind) => renderer.log(text, kind, state ? state.time : 0);
 
 function aiContext(extra = {}) {
@@ -388,6 +413,7 @@ function openRoom(request) {
     $('ai-status').textContent = res.ai ? 'AI commander: online' : 'AI commander: canned lines';
     if (!sameRoom || phase === PHASES.LOBBY) {
       // New room (or still in the lobby): start clean, the server re-sends everyone in the room.
+      if (!sameRoom) playerColorById.clear();
       roster.clear();
       if (phase === PHASES.LOBBY) buildPreview();
       else toLobby();
@@ -422,9 +448,11 @@ function updateRoomCount() {
 
 socket.on(EV.PLAYER_JOINED, ({ playerId, name }) => {
   if (roster.has(playerId)) return;
-  roster.set(playerId, { playerId, name });
+  const color = colorForPlayer(playerId);
+  const player = { playerId, name, color: color.value, colorName: color.name };
+  roster.set(playerId, player);
   if (phase === PHASES.LOBBY) buildPreview();
-  else addPlayer(state, { playerId, name });
+  else addPlayer(state, player);
   log(`${name} joined the network`, 'join');
   sfx.join();
   commander.react('join', { name });

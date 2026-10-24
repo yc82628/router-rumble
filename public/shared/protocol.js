@@ -69,6 +69,9 @@ export const STATUS = Object.freeze({ OK: 'ok', WARN: 'warn', CRASHED: 'crashed'
  * PlayerState: what one phone sees about its own router (built by playerView() in screen/sim.js).
  * @typedef {object} PlayerState
  * @property {string} playerId
+ * @property {string} playerName
+ * @property {string} playerColor      randomized room color shared with the big screen
+ * @property {string} playerColorName
  * @property {string|null} routerId
  * @property {string} routerName      e.g. "AP-2"
  * @property {number} routerSlot      1-based index among the routers this player owns
@@ -90,7 +93,7 @@ export const STATUS = Object.freeze({ OK: 'ok', WARN: 'warn', CRASHED: 'crashed'
  * @property {number} cableTaps       progress on a cut cable next to this router
  * @property {number} cableNeeded
  * @property {string} [event]         text of a chaos event affecting this router
- * @property {Array<{id:string, kind:string, label:string, demand:number, surging:boolean,
+ * @property {Array<{id:string, kind:string, label:string, playerColor?:string, demand:number, surging:boolean,
  *   isNew:boolean, reconnecting:boolean, mine:boolean}>} devices   devices on this AP, hungriest first
  * @property {number} health          team network health 0..100
  * @property {number|null} timeLeft   seconds left in the level (null on the boss level: no timer)

@@ -48,7 +48,7 @@ export function statusWord(r) {
 
 /** Devices grow (and warm up in colour) as they need more traffic. */
 export const deviceScale = (d) => (d.kind === 'player' ? 1 : clamp(Math.sqrt(d.demand / 14), 0.75, 2.6));
-const deviceColor = (d) => (d.kind === 'player' ? C.magenta : d.demand > 50 ? C.red : d.demand > 32 ? C.yellow : C.cyan);
+const deviceColor = (d) => (d.kind === 'player' ? d.playerColor || C.magenta : d.demand > 50 ? C.red : d.demand > 32 ? C.yellow : C.cyan);
 
 function loadColor(r) {
   if (r.status === 'crashed') return C.red;
@@ -768,10 +768,27 @@ export function createRenderer(canvas, dom) {
     ctx.fillRect(bx + (bw * 2) / 3, by - 2, 1.5, 12);
 
     // owners
-    const names = r.ownerIds.map((id) => state.players.find((p) => p.id === id)?.name).filter(Boolean);
-    ctx.fillStyle = names.length ? C.magenta : C.dim;
+    const owners = r.ownerIds.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
     ctx.font = `11px ${font}`;
-    ctx.fillText(names.length ? names.join(' + ') : 'unassigned', x, by + 22);
+    if (owners.length) {
+      const label = owners.map((p) => p.name).join(' + ');
+      let left = x - ctx.measureText(label).width / 2;
+      for (const [i, owner] of owners.entries()) {
+        ctx.fillStyle = owner.color || C.magenta;
+        ctx.textAlign = 'left';
+        ctx.fillText(owner.name, left, by + 22);
+        left += ctx.measureText(owner.name).width;
+        if (i < owners.length - 1) {
+          ctx.fillStyle = C.dim;
+          ctx.fillText(' + ', left, by + 22);
+          left += ctx.measureText(' + ').width;
+        }
+      }
+      ctx.textAlign = 'center';
+    } else {
+      ctx.fillStyle = C.dim;
+      ctx.fillText('unassigned', x, by + 22);
+    }
   }
 
   function drawDevice(d, pos, online) {
@@ -1309,8 +1326,7 @@ export function createRenderer(canvas, dom) {
 
     const routerName = (id) => state.routers.find((r) => r.id === id)?.name ?? '-';
     const ops = state.players.map((p) => {
-      const r = state.routers.find((x) => x.id === p.activeRouter);
-      return { name: p.name, routers: p.routerIds.map(routerName).join(' '), color: r ? statusWord(r).color : C.dim };
+      return { name: p.name, routers: p.routerIds.map(routerName).join(' '), color: p.color || C.magenta };
     });
     const opsKey = JSON.stringify(ops);
     if (opsKey !== hudCache.ops) {
@@ -1318,7 +1334,11 @@ export function createRenderer(canvas, dom) {
       dom.opCount.textContent = `(${ops.length})`;
       dom.operators.replaceChildren(
         ...(ops.length
-          ? ops.map((o) => row([dot(o.color), span(o.name, 'op-name'), span(o.routers, 'op-ap')]))
+          ? ops.map((o) => {
+            const name = span(o.name, 'op-name');
+            name.style.color = o.color;
+            return row([dot(o.color), name, span(o.routers, 'op-ap')]);
+          })
           : [row([span('No operators yet. Scan the QR code.', 'muted')])]),
       );
     }

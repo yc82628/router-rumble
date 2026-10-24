@@ -249,12 +249,13 @@ function renderDevices(s) {
     el.setAttribute('aria-label', `${d.mine ? 'Your phone' : d.label}, demand ${d.demand}`);
     el.className = [
       'chip-dev',
-      d.mine || d.kind === 'player' ? 'mine' : d.demand > 50 ? 'hot' : d.demand > 32 ? 'warm' : '',
+      d.kind === 'player' ? 'player' : d.demand > 50 ? 'hot' : d.demand > 32 ? 'warm' : '',
       d.isNew ? 'new' : '',
       d.surging ? 'surge' : '',
       d.reconnecting ? 'recon' : '',
       d.id === selected ? 'sel' : '',
     ].join(' ');
+    if (d.playerColor) el.style.setProperty('--player-color', d.playerColor);
     el.style.fontSize = `${Math.min(18, 11 + d.demand / 8)}px`; // hungrier = bigger, like on the map
     const icon = document.createElement('span');
     icon.className = 'dev-icon';
@@ -285,6 +286,11 @@ function renderControl() {
   const over = !crashed && s.overload > 0;
 
   $('c-router').textContent = s.ownedCount > 1 ? `${s.routerName} (${s.routerSlot}/${s.ownedCount})` : s.routerName;
+  $('player-name').textContent = s.playerName || 'PLAYER';
+  $('player-color-name').textContent = s.playerColorName || 'PINK';
+  $('player-color-dot').style.backgroundColor = s.playerColor || '#ff4fd8';
+  $('player-color-dot').style.boxShadow = `0 0 10px ${s.playerColor || '#ff4fd8'}`;
+  document.documentElement.style.setProperty('--player-color', s.playerColor || '#ff4fd8');
   const chip = $('c-status');
   chip.textContent = crashed ? `OFFLINE ${Math.ceil(s.crashLeft)}s` : over ? 'OVERLOAD' : s.status === 'warn' ? 'STRAINED' : 'ONLINE';
   chip.className = `chip ${crashed ? 'crashed' : over ? 'over' : s.status}`;

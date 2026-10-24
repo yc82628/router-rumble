@@ -22,13 +22,13 @@ export const LEVELS = [
     duration: 90,
     routers: 3,
     capacity: 100,
-    demand: [50, 75, 45],
+    demand: [42, 54, 40],
     wave: { amp: 0.15, period: 18 },
-    ramp: 0.1,
-    surges: { first: 8, every: 9, peak: [1.8, 2.4], dur: [8, 13] },
-    joins: { first: 20, every: 18, max: 3, kinds: ['phone', 'laptop', 'tv'], demandPerWeight: 7 },
-    spikes: [{ at: 45, dur: 12, mul: 1.25, router: 1 }], // someone starts a console update
-    bots: { first: 28, every: 20, hp: 3, drain: 12 },
+    ramp: 0.05,
+    surges: { first: 18, every: 14, peak: [1.5, 1.9], dur: [6, 9] },
+    joins: { first: 30, every: 24, max: 2, kinds: ['phone', 'laptop', 'tv'], demandPerWeight: 6 },
+    spikes: [{ at: 58, dur: 8, mul: 1.2, router: 1 }], // a gentle console update spike
+    bots: { first: 45, every: 28, hp: 2, drain: 10 },
     events: null,
     devices: [
       ['phone', 'laptop', 'tv'],
@@ -38,9 +38,9 @@ export const LEVELS = [
     tutorial: [
       { at: 1, text: 'Each phone runs one access point. Watch your load bar.' },
       { at: 14, text: 'Overloaded? PUSH traffic to a neighbour, but don\'t melt their AP.' },
-      { at: 22, text: 'Devices grow when they need more traffic. Move a big one to a quieter AP!' },
-      { at: 30, text: 'A mini bot is eating bandwidth! Tap FIX on that AP to zap it.' },
-      { at: 45, text: 'BOOST = +50% capacity for 5 s. FIX also revives a crashed AP.' },
+      { at: 26, text: 'Devices grow when they need more traffic. Move a big one to a quieter AP!' },
+      { at: 40, text: 'A minion is coming. Tap FIX on its AP to zap it.' },
+      { at: 54, text: 'BOOST = +50% capacity for 5 s. FIX also revives a crashed AP.' },
     ],
   },
   {
@@ -53,14 +53,14 @@ export const LEVELS = [
     demand: [60, 70, 65, 55],
     wave: { amp: 0.12, period: 15 },
     ramp: 0.05,
-    surges: { first: 5, every: 7, peak: [1.8, 2.6], dur: [8, 14] },
-    joins: { first: 12, every: 14, max: 4, kinds: ['laptop', 'phone', 'tv'], demandPerWeight: 7 },
+    surges: { first: 8, every: 10, peak: [1.6, 2.1], dur: [7, 10] },
+    joins: { first: 18, every: 18, max: 3, kinds: ['laptop', 'phone', 'tv'], demandPerWeight: 6 },
     spikes: [
-      { at: 15, dur: 10, mul: 1.35 }, // stand-up call
-      { at: 58, dur: 12, mul: 1.45 }, // all-hands call
+      { at: 20, dur: 8, mul: 1.25 }, // stand-up call
+      { at: 62, dur: 10, mul: 1.35 }, // all-hands call
     ],
     // First virus wave is a readable warning, then each infected AP can copy it once.
-    bots: { first: 16, every: 18, hp: 3, drain: 13, virus: true, spreadAfter: 10, spreadLimit: 1 },
+    bots: { first: 26, every: 22, hp: 3, drain: 12, virus: true, spreadAfter: 12, spreadLimit: 1 },
     events: { first: 35, every: 0, max: 1, pool: ALL_EVENTS },
     devices: [
       ['laptop', 'laptop', 'phone'],
@@ -70,7 +70,7 @@ export const LEVELS = [
     ],
     tutorial: [
       { at: 2, text: 'Monday. 9am. Video calls in 3, 2, 1…' },
-      { at: 8, text: 'Virus minions can spread to a neighbour AP. FIX them before they copy!' },
+      { at: 18, text: 'Viruses can spread to a neighbour AP. FIX them before they copy!' },
     ],
   },
   // ---- Drafts for owner B (still being tuned).

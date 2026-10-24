@@ -105,7 +105,10 @@ runs fully offline.
   devices off a crashed AP brings them back online.
 - An AP above capacity for 3 s crashes for 5 s. Its devices go offline and health drains.
 - **Enemies (one rule: FIX zaps them).**
-  - Level 1 introduces horned **minions**. Tap FIX on their AP to zap them (3 taps each).
+  - Level 1 is the slower onboarding round: learn to watch load, reroute traffic, and move devices
+    before the first horned **minion** arrives. Tap FIX on its AP to zap it (2 taps).
+  - Level 2 adds pressure gradually and introduces viruses; Level 3 is where the faster difficulty
+    ramp begins.
   - Levels 2–3 add **viruses**. They eat bandwidth and can spread once to a neighbouring AP if
     players do not contain them in time. Level 3 sends tougher viruses more often.
   - Level 4 is the final boss, **ULTRON**: a giant robot that docks onto an AP, drains it hard,
@@ -113,6 +116,8 @@ runs fully offline.
     Knock it down and its droids fall with it, but it returns stronger. Beat it 3 times to win
     (no timer on this level). Boss HP scales with the number of players.
 - The phone shows exact load numbers; the big screen only shows bars and status words. Talk!
+- Every player gets a randomized color for the room. It marks their phone identity, player icon,
+  and name on the big screen; colors do not assign gameplay roles.
 - Survive 90 s to clear a level. Health 0% = network down.
 
 ## Architecture

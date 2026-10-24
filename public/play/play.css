@@ -94,7 +94,11 @@ input:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
 /* ---------- controller */
 .ap-head { display: flex; align-items: center; justify-content: space-between; padding-right: 54px; }
+.ap-title { display: flex; flex-direction: column; gap: 1px; }
 #c-router { font-size: 28px; font-weight: 700; color: var(--bright); letter-spacing: 2px; }
+.player-identity { display: flex; align-items: center; gap: 5px; color: var(--player-color, var(--magenta)); font-size: 10px; letter-spacing: 1px; }
+.player-identity i { width: 9px; height: 9px; border-radius: 50%; background: var(--player-color, var(--magenta)); box-shadow: 0 0 10px var(--player-color, var(--magenta)); }
+.player-identity span { opacity: .75; }
 .chip { padding: 6px 10px; border: 2px solid currentColor; border-radius: 6px; font-weight: 700; letter-spacing: 2px; font-size: 14px; }
 .chip.ok { color: var(--green); }
 .chip.warn { color: var(--yellow); }
@@ -145,11 +149,11 @@ input:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .chip-dev .n { flex: none; }
 .chip-dev.warm { color: var(--yellow); }
 .chip-dev.hot { color: var(--red); }
-.chip-dev.mine { color: var(--magenta); }
+.chip-dev.player { color: var(--player-color, var(--magenta)); border-color: currentColor; }
 .chip-dev.new { box-shadow: 0 0 0 2px var(--green); }
 .chip-dev.surge { animation: hot 0.5s ease-in-out infinite alternate; }
 .chip-dev.recon { opacity: 0.35; }
-.chip-dev.sel { background: var(--magenta); color: var(--bg); border-color: var(--magenta); }
+.chip-dev.sel { background: var(--player-color, var(--magenta)); color: var(--bg); border-color: var(--player-color, var(--magenta)); }
 .chip-more { display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 13px; }
 
 .grid {
