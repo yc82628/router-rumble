@@ -2,6 +2,10 @@
 
 > Keep the internet alive together, while the internet tries to kill you.
 
+**Play it live:** https://router-rumble.onrender.com (open on the big screen, then scan the QR code
+with phones). Hosted on Render's free tier: after ~15 min with no visitors it sleeps, and the first
+load takes up to a minute, so open it a minute before playing. Every push to `main` redeploys it.
+
 A co-op party game. One big screen shows a HackNet-style netops console with the Wi-Fi network:
 an internet uplink, a row of access points (APs) and the devices hanging off them. Every player's
 phone is a controller **and** a device on that network. Routers overload, crash, and the team
