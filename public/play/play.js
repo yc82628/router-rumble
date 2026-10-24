@@ -1,6 +1,7 @@
 // Phone controller: join form, big buttons, private view of the player's own access point.
 // Owner A. The phone never simulates anything; it only sends inputs and shows player:state.
 import { EV, ACTIONS, PHASES } from '../shared/protocol.js';
+import { cipherReveal } from '../shared/cipher.js';
 
 const $ = (id) => document.getElementById(id);
 const socket = window.io();
@@ -401,4 +402,5 @@ document.addEventListener('fullscreenchange', syncFullscreenButtons);
 document.addEventListener('webkitfullscreenchange', syncFullscreenButtons);
 syncFullscreenButtons();
 
+cipherReveal(document.querySelector('#view-join h1'));
 render();

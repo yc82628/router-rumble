@@ -10,6 +10,7 @@ import {
 import { createRenderer, fmtTime } from './render.js';
 import { createCommander } from './commander.js';
 import { sfx, unlockAudio, toggleMute } from './audio.js';
+import { cipherReveal } from '../shared/cipher.js';
 
 const $ = (id) => document.getElementById(id);
 const socket = window.io();
@@ -108,6 +109,7 @@ function startLevel(i) {
   commander.setMood('calm');
   $('overlay-end').hidden = true;
   $('countdown-level').textContent = `LEVEL ${levelIndex + 1} // ${level.name.toUpperCase()}`;
+  cipherReveal($('countdown-level'), { duration: 1000 });
   $('countdown-tagline').textContent = level.tagline || '';
   $('overlay-countdown').hidden = false;
   countdownEndsAt = performance.now() + 3000;
@@ -633,6 +635,7 @@ syncRotateHint();
 
 document.body.dataset.phase = phase;
 loadHighScores();
+cipherReveal(document.querySelector('.brand'));
 setInterval(() => phase === PHASES.LOBBY && loadHighScores(), 15000);
 buildPreview();
 renderer.hud(state);
