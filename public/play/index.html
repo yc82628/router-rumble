@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#05080d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Router Rumble: Controller</title>
+  <link rel="stylesheet" href="/play/play.css">
+</head>
+<body>
+  <section id="view-join" class="view">
+    <h1>ROUTER<br><span>RUMBLE</span></h1>
+    <p class="tag">NETOPS FIELD UNIT</p>
+    <form id="join-form" autocomplete="off">
+      <label for="name">Operator name</label>
+      <input id="name" maxlength="12" autocapitalize="words" enterkeyhint="go" spellcheck="false" required>
+      <button id="join-btn" type="submit">JOIN NETWORK</button>
+    </form>
+    <p id="join-error" role="alert"></p>
+  </section>
+
+  <section id="view-wait" class="view" hidden>
+    <div class="phone-icon" aria-hidden="true"></div>
+    <h2 id="wait-title">You're on the network.</h2>
+    <p>Your phone is now on the network.<br><b>Don't crash it.</b></p>
+    <p id="wait-ap" class="muted"></p>
+    <p class="blink">Waiting for host…</p>
+  </section>
+
+  <section id="view-control" class="view" hidden>
+    <header class="ap-head">
+      <div id="c-router">AP-1</div>
+      <div id="c-status" class="chip ok">ONLINE</div>
+    </header>
+    <div id="c-event" hidden></div>
+    <div class="meter" aria-hidden="true">
+      <div id="c-load-fill"></div>
+      <div class="cap-mark"></div>
+    </div>
+    <div class="load-row">
+      <span id="c-load-text">0 / 100</span>
+      <span id="c-overload"></span>
+    </div>
+    <div class="shares">
+      <div><small id="c-left-label">◀ AP-0</small><b id="c-sl">0%</b></div>
+      <div class="right"><small id="c-right-label">AP-2 ▶</small><b id="c-sr">0%</b></div>
+    </div>
+    <div id="dev-title" class="dev-title">DEVICES · tap one to move it</div>
+    <div id="devices" class="devices"></div>
+    <div class="grid">
+      <button data-action="pushLeft" id="b-left">◀ PUSH LEFT</button>
+      <button data-action="pushRight" id="b-right">PUSH ▶ RIGHT</button>
+      <button data-action="pullBack" id="b-pull">PULL BACK</button>
+      <button data-action="boost" id="b-boost">BOOST</button>
+      <button data-action="fix" id="b-fix" class="wide">FIX</button>
+      <button data-action="switchRouter" id="b-switch" class="wide" hidden>SWITCH AP</button>
+    </div>
+    <footer class="foot"><span id="c-health">HEALTH 100%</span><span id="c-time">1:30</span></footer>
+  </section>
+
+  <div id="phase-overlay" hidden>
+    <div id="phase-title"></div>
+    <div id="phase-sub"></div>
+  </div>
+  <div id="conn" hidden>reconnecting…</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/play/play.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "router-rumble",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Co-op party game: keep the Wi-Fi alive while traffic surges. Big screen + phones as controllers.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  }
+}

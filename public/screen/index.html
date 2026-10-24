@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Router Rumble</title>
+  <link rel="stylesheet" href="/screen/style.css">
+</head>
+<body data-phase="lobby">
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">ROUTER<span>RUMBLE</span><small>// netops console</small></div>
+      <div id="demo-flag" class="flag" hidden>DEMO</div>
+      <div class="stat"><label>LEVEL</label><b id="hud-level">1</b></div>
+      <div class="stat"><label>TIME</label><b id="hud-time">1:30</b></div>
+      <div class="stat health">
+        <label>NETWORK HEALTH</label>
+        <div class="bar"><i id="hud-health-bar"></i></div>
+        <b id="hud-health">100%</b>
+      </div>
+      <div class="stat"><label>SCORE</label><b id="hud-score">0</b></div>
+      <div class="stat"><label>CRASHES</label><b id="hud-crashes">0</b></div>
+    </header>
+
+    <aside id="left">
+      <section class="panel" id="commander">
+        <h2>INCIDENT COMMANDER</h2>
+        <div class="cmdr">
+          <pre id="cmdr-face" aria-hidden="true"></pre>
+          <p id="cmdr-line" aria-live="polite"></p>
+        </div>
+        <p id="ai-status" class="muted small"></p>
+      </section>
+      <section class="panel grow">
+        <h2>INCIDENT LOG</h2>
+        <ol id="log"></ol>
+      </section>
+    </aside>
+
+    <main id="map">
+      <canvas id="canvas"></canvas>
+      <div id="lobby-title" class="lobby-only">
+        <h1>ROUTER<span>RUMBLE</span></h1>
+        <p>Keep the internet alive together, while the internet tries to kill you.</p>
+      </div>
+      <div id="banner" hidden></div>
+
+      <div id="overlay-countdown" class="overlay" hidden>
+        <div id="countdown-level"></div>
+        <div id="countdown-num">3</div>
+        <div id="countdown-tagline"></div>
+      </div>
+
+      <div id="overlay-end" class="overlay" hidden>
+        <div class="card">
+          <h1 id="end-title"></h1>
+          <p id="end-sub"></p>
+          <dl id="end-stats"></dl>
+          <blockquote id="end-report"></blockquote>
+          <div class="actions">
+            <button id="btn-next" class="primary">NEXT LEVEL ▶</button>
+            <button id="btn-retry">RETRY</button>
+            <button id="btn-lobby">LOBBY</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside id="right">
+      <section class="panel lobby-only" id="join-panel">
+        <h2>JOIN THE NETWORK</h2>
+        <div class="body">
+          <img id="qr-big" alt="QR code to join the game">
+          <code id="join-url">loading…</code>
+          <p>Scan, pick a name. Your phone becomes a device on the map.</p>
+          <button id="btn-start" class="primary">START SHIFT ▶</button>
+          <p class="muted small">S start · D demo bots · L skip level · K crash · E chaos event · M mute · Esc lobby</p>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>OPERATORS <span id="op-count"></span></h2>
+        <ul id="operators" class="rows"></ul>
+      </section>
+      <section class="panel play-only">
+        <h2>ACCESS POINTS</h2>
+        <ul id="nodes" class="rows"></ul>
+      </section>
+      <section class="panel play-only" id="join-mini">
+        <h2>LATE? JOIN HERE</h2>
+        <div class="body mini">
+          <img id="qr-mini" alt="QR code to join the game">
+          <code id="join-url-mini"></code>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/screen/main.js"></script>
+</body>
+</html>
