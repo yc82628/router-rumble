@@ -6,16 +6,16 @@ const TAU = Math.PI * 2;
 const MAX_PACKETS = 700;
 
 export const COLORS = {
-  bg: '#020906',
-  grid: 'rgba(99, 244, 177, 0.045)',
-  line: '#245342',
-  cyan: '#85f8cf',
-  green: '#63f4b1',
-  yellow: '#f8c75d',
-  red: '#ff667a',
-  magenta: '#ff8ad5',
+  bg: '#010805',
+  grid: 'rgba(43, 255, 173, 0.055)',
+  line: '#25654a',
+  cyan: '#58ffda',
+  green: '#2bffad',
+  yellow: '#ffd447',
+  red: '#ff526b',
+  magenta: '#f178da',
   orange: '#ffad73',
-  dim: '#416a59',
+  dim: '#527a67',
   text: '#a0c6b3',
   bright: '#effff5',
 };
@@ -23,6 +23,10 @@ const C = COLORS;
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+const quad = (a, c, b, t) => ({
+  x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t ** 2 * b.x,
+  y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t ** 2 * b.y,
+});
 function rgba(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
@@ -90,16 +94,16 @@ export function createRenderer(canvas, dom) {
     const span = W - padX * 2;
     const cell = span / n;
     const R = clamp(Math.min(cell * 0.17, H * 0.075), 16, 48);
-    const uplink = { x: W / 2, y: H * 0.105 };
-    const routers = state.routers.map((_, i) => ({ x: padX + cell * (i + 0.5), y: H * 0.43 }));
+    const uplink = { x: W / 2, y: H * 0.095 };
+    const routers = state.routers.map((_, i) => ({ x: padX + cell * (i + 0.5), y: H * 0.375 }));
     const targets = new Map();
     state.routers.forEach((r, i) => {
       const m = r.devices.length;
-      const spread = Math.min(cell * 0.86, m * 46);
+      const spread = Math.min(cell * 0.92, m * 95);
       r.devices.forEach((d, k) => {
         targets.set(d.id, {
           x: routers[i].x + (m === 1 ? 0 : (k / (m - 1) - 0.5) * spread),
-          y: H * 0.76 + (k % 2 ? 30 : 0),
+          y: H * 0.79 + (k % 2 ? 28 : 0),
         });
       });
     });
@@ -138,7 +142,7 @@ export function createRenderer(canvas, dom) {
       const crashed = r.status === 'crashed';
       if (!crashed || r.failover) {
         for (const d of r.devices) {
-          if (d.reconnect <= 0) add(`d${d.id}`, d.demand / 8, () => ({ kind: 'dev', a: i, id: d.id, t: 0, v: 1.5 }));
+          if (d.reconnect <= 0) add(`d${d.id}`, d.demand / 4.5, () => ({ kind: 'dev', a: i, id: d.id, t: 0, v: 1.15, tone: d.surge > 0 ? 'surge' : d.demand > 25 ? 'heavy' : 'normal' }));
         }
       }
       if (crashed) {
@@ -148,7 +152,7 @@ export function createRenderer(canvas, dom) {
         });
         continue;
       }
-      add(`u${i}`, Math.min(r.load, effectiveCapacity(r)) / 9, () => ({ kind: 'up', a: i, t: 0, v: 1.1 }));
+      add(`u${i}`, Math.min(r.load, effectiveCapacity(r)) / 6, () => ({ kind: 'up', a: i, t: 0, v: 0.95 }));
       if (r.overflow > 0) {
         add(`x${i}`, r.overflow / 2, () => {
           const p = lay.routers[i];
@@ -176,7 +180,16 @@ export function createRenderer(canvas, dom) {
     }
     const r = lay.routers[p.a];
     const d = devPos.get(p.id);
-    return r && d && lerp(d, { x: r.x, y: r.y + lay.R + 34 }, p.t);
+    if (!r || !d) return null;
+    const a = { x: r.x, y: r.y + lay.R + 34 };
+    return quad(d, deviceControl(a, d), a, p.t);
+  }
+
+  function deviceControl(ap, device) {
+    return {
+      x: ap.x + (device.x - ap.x) * 0.18,
+      y: ap.y + (device.y - ap.y) * 0.55,
+    };
   }
 
   function makeSpark(x, y, color, speed = 160) {
@@ -229,23 +242,23 @@ export function createRenderer(canvas, dom) {
     ctx.fillStyle = C.bg;
     ctx.fillRect(-20, -20, W + 40, H + 40);
 
-    // An atmospheric signal ghost sits well behind the actual network. It is
-    // intentionally faint so packets, APs and drag targets remain the focus.
+    // The operator is part of the field, but the network always reads on top.
     if (operatorGhost.complete && operatorGhost.naturalWidth) {
-      const h = H * 0.72;
+      const h = H * 1.18;
       const w = h * operatorGhost.naturalWidth / operatorGhost.naturalHeight;
-      ctx.globalAlpha = 0.075;
-      ctx.drawImage(operatorGhost, W * 0.055, H * 0.035, w, h);
+      ctx.globalAlpha = 0.4;
+      ctx.drawImage(operatorGhost, -W * 0.025, -H * 0.18, w, h);
       ctx.globalAlpha = 1;
     }
 
-    const atmosphere = ctx.createRadialGradient(W * 0.5, H * 0.43, H * 0.05, W * 0.5, H * 0.43, W * 0.66);
-    atmosphere.addColorStop(0, 'rgba(35, 113, 73, 0.095)');
+    const atmosphere = ctx.createRadialGradient(W * 0.5, H * 0.38, H * 0.03, W * 0.5, H * 0.38, W * 0.68);
+    atmosphere.addColorStop(0, 'rgba(30, 137, 83, 0.17)');
     atmosphere.addColorStop(1, 'rgba(2, 9, 6, 0)');
     ctx.fillStyle = atmosphere;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = C.grid;
+    // A restrained CRT texture in the distance, then a receding floor grid.
+    ctx.strokeStyle = 'rgba(43, 255, 173, 0.025)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = (W / 2) % 40; x < W; x += 40) {
@@ -258,29 +271,40 @@ export function createRenderer(canvas, dom) {
     }
     ctx.stroke();
 
-    // A few large radar arcs give the empty field scale without adding UI.
-    ctx.strokeStyle = rgba(C.green, 0.035);
+    const horizon = H * 0.19;
+    ctx.strokeStyle = rgba(C.green, 0.085);
+    ctx.beginPath();
+    for (let i = -10; i <= 10; i++) {
+      ctx.moveTo(W / 2 + i * W * 0.008, horizon);
+      ctx.lineTo(W / 2 + i * W * 0.1, H);
+    }
+    for (const t of [0.22, 0.32, 0.43, 0.55, 0.68, 0.82, 1]) {
+      const y = horizon + (H - horizon) * t * t;
+      const half = W * (0.08 + t * 0.48);
+      ctx.moveTo(W / 2 - half, y);
+      ctx.lineTo(W / 2 + half, y);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = rgba(C.green, 0.055);
     ctx.lineWidth = 1;
-    for (const radius of [H * 0.25, H * 0.44, H * 0.64]) {
+    for (const radius of [H * 0.34, H * 0.62]) {
       ctx.beginPath();
-      ctx.arc(W / 2, H * 0.43, radius, 0, TAU);
+      ctx.ellipse(W / 2, H * 0.39, radius * 1.35, radius * 0.45, 0, 0, TAU);
       ctx.stroke();
     }
   }
 
-  function channel(x1, y1, x2, y2, color, strength = 1) {
-    ctx.strokeStyle = rgba(color, 0.07 * strength);
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-    ctx.strokeStyle = rgba(color, 0.37 * strength);
-    ctx.lineWidth = 1.25;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+  function channel(x1, y1, x2, y2, color, strength = 1, control = null) {
+    for (const [alpha, width] of [[0.16 * strength, 11], [0.77 * strength, 2]]) {
+      ctx.strokeStyle = rgba(color, alpha);
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      if (control) ctx.quadraticCurveTo(control.x, control.y, x2, y2);
+      else ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
   }
 
   function drawLinks(state) {
@@ -288,7 +312,7 @@ export function createRenderer(canvas, dom) {
     // uplink → APs
     for (const r of state.routers) {
       const p = lay.routers[r.index];
-      channel(lay.uplink.x, lay.uplink.y, p.x, p.y - R, r.status === 'crashed' ? C.red : C.cyan, 0.7);
+      channel(lay.uplink.x, lay.uplink.y, p.x, p.y - R, r.status === 'crashed' ? C.red : C.cyan, 0.62);
     }
     // devices → AP
     for (const r of state.routers) {
@@ -296,7 +320,9 @@ export function createRenderer(canvas, dom) {
       for (const dev of r.devices) {
         const d = devPos.get(dev.id);
         if (!d) continue;
-        channel(p.x, p.y + R + 34, d.x, d.y, r.status === 'crashed' ? C.dim : C.green, 0.5);
+        const start = { x: p.x, y: p.y + R + 34 };
+        const trafficColor = r.status === 'crashed' ? C.dim : loadColor(r);
+        channel(start.x, start.y, d.x, d.y, trafficColor, 0.9, deviceControl(start, d));
       }
     }
     // AP ↔ AP
@@ -351,22 +377,32 @@ export function createRenderer(canvas, dom) {
       const pos = packetPos(p);
       if (!pos) continue;
       keep.push(p);
-      const color = p.kind === 'up' ? C.cyan : p.kind === 'side' ? C.yellow : C.green;
+      const router = lastState?.routers[p.a];
+      const statusColor = router ? loadColor(router) : C.green;
+      const color = p.kind === 'side' ? C.yellow
+        : statusColor === C.red ? C.red
+        : statusColor === C.yellow ? (p.tone === 'surge' ? C.red : C.yellow)
+        : p.kind === 'up' ? C.cyan
+        : p.tone === 'surge' ? C.red : p.tone === 'heavy' ? C.yellow : C.cyan;
       const tail = packetPos({ ...p, t: Math.max(0, p.t - 0.035) });
       if (tail) {
-        ctx.strokeStyle = rgba(color, 0.45);
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = rgba(color, 0.75);
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(tail.x, tail.y);
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
       }
-      ctx.fillStyle = rgba(color, 0.16);
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 6, 0, TAU);
-      ctx.fill();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
       ctx.fillStyle = color;
-      ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
+      ctx.fillRect(pos.x - 3.5, pos.y - 3.5, 7, 7);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = rgba(color, 0.45);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(pos.x - 5.5, pos.y - 5.5, 11, 11);
+      ctx.fillStyle = rgba(C.bright, 0.88);
+      ctx.fillRect(pos.x - 1, pos.y - 1, 2, 2);
     }
     packets = keep;
     ctx.globalCompositeOperation = 'source-over';
@@ -425,27 +461,44 @@ export function createRenderer(canvas, dom) {
     const cap = effectiveCapacity(r);
     const ratio = crashed ? 0 : r.load / cap;
 
+    // A luminous elliptical deck grounds each AP on the receding network plane.
+    ctx.fillStyle = rgba(col, 0.08);
+    ctx.strokeStyle = rgba(col, 0.56);
+    ctx.lineWidth = 2;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.ellipse(x, y + R * 0.52, R * 1.62, R * 0.61, 0, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = rgba(col, 0.25);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x, y + R * 0.52, R * 1.9, R * 0.78, 0, 0, TAU);
+    ctx.stroke();
+
     // halo
-    const g = ctx.createRadialGradient(x, y, R * 0.6, x, y, R * 2.3);
-    g.addColorStop(0, rgba(col, crashed ? 0.3 + 0.2 * Math.sin(clock * 12) : 0.2));
+    const g = ctx.createRadialGradient(x, y, R * 0.55, x, y, R * 2.5);
+    g.addColorStop(0, rgba(col, crashed ? 0.42 + 0.2 * Math.sin(clock * 12) : 0.36));
     g.addColorStop(1, rgba(col, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(x, y, R * 2.3, 0, TAU);
+    ctx.arc(x, y, R * 2.5, 0, TAU);
     ctx.fill();
 
     // Concentric instrumentation makes the APs read as the primary controls.
-    ctx.strokeStyle = rgba(col, 0.22);
+    ctx.strokeStyle = rgba(col, 0.38);
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(x, y, R + 12, 0, TAU);
     ctx.stroke();
-    ctx.strokeStyle = rgba(col, 0.66);
+    ctx.strokeStyle = rgba(col, 0.92);
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, R + 12, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(ratio / 1.5, 0, 1));
     ctx.stroke();
-    ctx.strokeStyle = rgba(col, 0.38);
+    ctx.strokeStyle = rgba(col, 0.55);
     for (let i = 0; i < 12; i++) {
       const angle = (i / 12) * TAU;
       ctx.beginPath();
@@ -455,11 +508,11 @@ export function createRenderer(canvas, dom) {
     }
 
     // body
-    ctx.fillStyle = crashed ? '#190609' : '#06170f';
+    ctx.fillStyle = crashed ? '#190609' : '#041b10';
     ctx.strokeStyle = col;
     ctx.lineWidth = 2.5 + r.fixPulse * 3;
     ctx.shadowColor = col;
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 20;
     ctx.beginPath();
     ctx.arc(x, y, R, 0, TAU);
     ctx.fill();
@@ -506,16 +559,23 @@ export function createRenderer(canvas, dom) {
       ctx.setLineDash([]);
     }
 
-    // name + status above
+    // Compact status tag, readable against the operator and moving packets.
+    const tagW = Math.min(108, lay.cell * 0.75);
+    const tagY = y - R - 55;
+    ctx.fillStyle = 'rgba(1, 12, 7, 0.89)';
+    ctx.fillRect(x - tagW / 2, tagY, tagW, 35);
+    ctx.strokeStyle = rgba(col, 0.65);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - tagW / 2 + 0.5, tagY + 0.5, tagW - 1, 34);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = C.bright;
     ctx.font = `bold ${Math.round(clamp(R * 0.45, 12, 16))}px ${font}`;
-    ctx.fillText(r.name, x, y - R - 20);
+    ctx.fillText(r.name, x, tagY + 15);
     const sw = statusWord(r);
     ctx.fillStyle = sw.color;
     ctx.font = `10px ${font}`;
-    ctx.fillText(crashed ? 'OFFLINE' : r.boostTimer > 0 ? 'BOOSTED' : sw.text, x, y - R - 8);
+    ctx.fillText(crashed ? 'OFFLINE' : r.boostTimer > 0 ? 'BOOSTED' : sw.text, x, tagY + 29);
 
     // load bar (no numbers): capacity mark sits at 2/3 of the bar
     const bw = Math.max(52, R * 2.5);
@@ -574,13 +634,21 @@ export function createRenderer(canvas, dom) {
       ctx.fill();
     }
 
+    ctx.strokeStyle = rgba(col, live ? 0.55 : 0.28);
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 10 * s, 14 * s, 4 * s, 0, 0, TAU);
+    ctx.stroke();
+
     ctx.save();
     ctx.globalAlpha = reconnecting ? 0.35 + 0.35 * Math.sin(clock * 20) : 1;
     ctx.translate(x, y);
     ctx.scale(s, s);
     ctx.strokeStyle = col;
-    ctx.fillStyle = online ? rgba(col, 0.15) : 'transparent';
-    ctx.lineWidth = (isPlayer ? 2 : 1.5) / s;
+    ctx.fillStyle = online ? rgba(col, 0.24) : 'transparent';
+    ctx.lineWidth = (isPlayer ? 2.5 : 2.1) / s;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = live ? 8 : 0;
     const box = (w, h) => {
       ctx.beginPath();
       ctx.rect(-w / 2, -h / 2, w, h);
