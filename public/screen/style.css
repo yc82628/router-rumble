@@ -113,6 +113,29 @@ aside { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 #join-panel img { display: block; width: 100%; max-width: 280px; margin: 0 auto 8px; image-rendering: pixelated; border: 1px solid var(--line); }
 #join-panel code, #join-mini code { display: block; font-size: 12px; color: var(--cyan); word-break: break-all; text-align: center; }
 #join-panel p { font-size: 12px; line-height: 1.5; }
+.boss-preview-art {
+  position: relative;
+  margin: 10px 10px 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 82, 107, .55);
+  background: radial-gradient(ellipse at 50% 62%, rgba(126, 16, 34, .4), rgba(2, 12, 9, .94) 72%);
+}
+.boss-preview-art img { display: block; width: 100%; height: 118px; object-fit: contain; }
+.boss-preview-art span {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  padding: 3px 5px;
+  background: rgba(5, 8, 13, .86);
+  color: #ff7183;
+  font-size: 8px;
+  letter-spacing: .14em;
+}
+.boss-preview-copy { padding: 8px 11px 11px; }
+.boss-preview-copy h3 { margin: 0 0 5px; color: #ff7183; font-size: 13px; letter-spacing: .15em; }
+.boss-preview-copy p { margin: 0 0 8px; font-size: 10px; line-height: 1.45; }
+.boss-preview-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.boss-preview-tags span { padding: 3px 5px; border: 1px solid rgba(255, 82, 107, .45); color: #ff9aa7; font-size: 8px; letter-spacing: .08em; }
 .room-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: 12px; letter-spacing: 2px; color: var(--dim); }
 .room-line b { font-size: 30px; letter-spacing: 6px; color: var(--bright); text-shadow: 0 0 12px rgba(61, 242, 255, 0.5); }
 #room-count { margin-left: auto; color: var(--magenta); letter-spacing: 0; }
@@ -425,6 +448,7 @@ button.primary:hover, button.primary:focus-visible { background: var(--bright); 
   #map { grid-column: 1; grid-row: 2; }
   #right { grid-column: 1; grid-row: 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; overflow: visible; }
   #join-panel, #join-mini { grid-column: 1 / -1; }
+  .boss-preview { grid-column: 1 / -1; }
   #nodes { max-height: 240px; }
 }
 @media (max-width: 520px) {

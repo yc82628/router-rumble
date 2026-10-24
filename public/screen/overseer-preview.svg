@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 190" role="img" aria-labelledby="title desc">
+  <title id="title">The Overseer and interceptor droids</title>
+  <desc id="desc">A red-eyed final boss commands droids over a glowing Wi-Fi network.</desc>
+  <defs>
+    <radialGradient id="aura">
+      <stop offset="0" stop-color="#ff3d5a" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#ff3d5a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="visor" x2="0" y2="1">
+      <stop stop-color="#ff9aa7"/>
+      <stop offset="1" stop-color="#ff3d5a"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="#46ff8f" stroke-opacity=".43" stroke-width="1">
+    <path d="M240 116 70 161M240 116 155 161M240 116 325 161M240 116 410 161"/>
+    <path d="M240 20v24M82 48l92 24M398 48l-92 24" stroke="#ff3d5a" stroke-opacity=".7" stroke-dasharray="4 4"/>
+  </g>
+  <ellipse cx="240" cy="92" rx="88" ry="78" fill="url(#aura)"/>
+
+  <!-- Interceptor droids -->
+  <g fill="#080e12" stroke="#ff526b" stroke-width="2" stroke-linejoin="round">
+    <g transform="translate(82 42)">
+      <path d="m-16 2 9-11h14L16 2l-4 13H-12z"/>
+      <path d="M-25 1h9M16 1h9M-9 15l-5 8m18-8 5 8"/>
+      <path d="M-8 2h16" stroke="#ff9aa7" stroke-width="3"/>
+      <circle cy="8" r="2" fill="#46ff8f" stroke="none"/>
+    </g>
+    <g transform="translate(398 42)">
+      <path d="m-16 2 9-11h14L16 2l-4 13H-12z"/>
+      <path d="M-25 1h9M16 1h9M-9 15l-5 8m18-8 5 8"/>
+      <path d="M-8 2h16" stroke="#ff9aa7" stroke-width="3"/>
+      <circle cy="8" r="2" fill="#46ff8f" stroke="none"/>
+    </g>
+  </g>
+
+  <!-- Overseer: scanning dish, hex helmet, visor, signal grille, torso, and claws. -->
+  <g transform="translate(240 91)" fill="#10090d" stroke="#ff526b" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M-18-53 0-62l18 9M0-62v-9" fill="none"/>
+    <path d="M-13-71a16 10 0 0 1 26 0" fill="none"/>
+    <path d="M-51-26-72-11-68 28-48 19M51-26l21 15-4 24-20-9"/>
+    <path d="m-46-22-17-11 4 21-8 27 25-1M46-22l17-11-4 21 8 27-25-1"/>
+    <path d="M-27-50 27-50 37-32 29-10-29-10-37-32z"/>
+    <path d="M-28-38h56v10h-56z" fill="#020507"/>
+    <path d="M-7-34h14v3H-7z" fill="url(#visor)" stroke="none"/>
+    <path d="M-13-18h5v7h-5zm10-3h5v10h-5zm10 3h5v7H7z" fill="#ff526b" stroke="none"/>
+    <path d="M-29-8 29-8 40 22 25 39-25 39-40 22z"/>
+    <circle cy="14" r="8" fill="#ff3d5a" fill-opacity=".65"/>
+    <path d="M-40 15-54 39-67 50m107-35 14 24 13 11" fill="none"/>
+    <path d="m-72 50 5-11 8 4m100 7-5-11-8 4" fill="#080e12"/>
+    <path d="m-43-48-10-10 20 3m76 7 10-10-20 3"/>
+  </g>
+
+  <!-- Access points under attack -->
+  <g fill="#04150e" stroke="#46ff8f" stroke-width="1.5">
+    <circle cx="70" cy="161" r="7"/><circle cx="155" cy="161" r="7"/>
+    <circle cx="325" cy="161" r="7"/><circle cx="410" cy="161" r="7"/>
+  </g>
+  <g fill="#46ff8f"><circle cx="70" cy="161" r="2"/><circle cx="155" cy="161" r="2"/><circle cx="325" cy="161" r="2"/><circle cx="410" cy="161" r="2"/></g>
+</svg>
