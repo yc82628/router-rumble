@@ -276,10 +276,25 @@ export function createRenderer(canvas, dom) {
 
     // The operator is part of the field, but the network always reads on top.
     if (operatorGhost.complete && operatorGhost.naturalWidth) {
-      const h = H * 1.18;
-      const w = h * operatorGhost.naturalWidth / operatorGhost.naturalHeight;
+      const ghostH = H * 1.18;
+      const ghostW = ghostH * operatorGhost.naturalWidth / operatorGhost.naturalHeight;
+      const ghostX = -W * 0.025;
+      const ghostY = -H * 0.18;
+      const stripH = 8;
+      const sway = Math.sin(clock * 0.75) * Math.min(W * 0.018, 10);
       ctx.globalAlpha = 0.4;
-      ctx.drawImage(operatorGhost, -W * 0.025, -H * 0.18, w, h);
+      for (let y = 0; y < ghostH; y += stripH) {
+        const height = Math.min(stripH + 1, ghostH - y);
+        const wave = Math.sin(y * TAU / (ghostH * 0.62) + clock * 2.4) * Math.max(6, W * 0.022)
+          + Math.sin(y * TAU / (ghostH * 0.23) - clock * 1.7) * Math.max(2, W * 0.006);
+        const sourceY = y / ghostH * operatorGhost.naturalHeight;
+        const sourceH = height / ghostH * operatorGhost.naturalHeight;
+        ctx.drawImage(
+          operatorGhost,
+          0, sourceY, operatorGhost.naturalWidth, sourceH,
+          ghostX + sway + wave, ghostY + y, ghostW, height
+        );
+      }
       ctx.globalAlpha = 1;
     }
 
