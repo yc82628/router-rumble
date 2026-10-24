@@ -437,8 +437,9 @@ export function createRenderer(canvas, dom) {
   }
 
   // ---------------------------------------------------------------- electric flow
-  // Each live connection is a crackling lightning arc. Brightness/thickness follow the traffic on
-  // it; a brighter surge travels along it in the direction traffic flows (device → AP → internet).
+  // Each live connection carries a small spark drifting slowly from source to sink (device → AP →
+  // internet), dragging a thin, flickering lightning trail behind it. Busier links get a brighter
+  // spark, a longer trail, and (when very busy) a second spark.
 
   /** Cheap deterministic noise in [-1, 1] for (seed, step). */
   const noise = (seed, step) => {
@@ -446,57 +447,72 @@ export function createRenderer(canvas, dom) {
     return (s - Math.floor(s)) * 2 - 1;
   };
 
+  const SPARK_SECONDS = 6; // a calm spark takes ~6 s to cross a link (busy links a bit faster)
+  const TRAIL = 0.28; // trail length as a fraction of the link
+
   /**
-   * One electric arc along a path. `at(t)` gives the point at t∈[0,1] (from source to sink).
-   * level 0..1 = how much traffic; color = traffic colour; seed keeps each arc's shape distinct.
+   * Sparks along one path. `at(t)` gives the point at t∈[0,1] (from source to sink).
+   * level 0..1 = how much traffic; color = traffic colour; seed keeps each path distinct.
    */
   function drawArc(at, level, color, seed) {
     if (level <= 0.01) return;
     const a = at(0);
     const b = at(1);
-    const length = Math.hypot(b.x - a.x, b.y - a.y);
-    if (length < 4) return;
-    const steps = Math.max(6, Math.min(26, Math.round(length / 14)));
-    const frame = Math.floor(clock * 18); // the arc re-crackles ~18 times a second
-    const amp = 2 + level * 7;
-    const pts = [];
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const p = at(t);
-      const q = at(Math.min(1, t + 0.01));
-      const r = at(Math.max(0, t - 0.01));
-      let nx = -(q.y - r.y);
-      let ny = q.x - r.x;
-      const n = Math.hypot(nx, ny) || 1;
-      nx /= n;
-      ny /= n;
-      const taper = Math.sin(Math.PI * t); // pinned at both ends
-      const off = (noise(seed, frame * 31 + i) * 0.75 + Math.sin(t * 9 + clock * 7 + seed) * 0.25) * amp * taper;
-      pts.push({ x: p.x + nx * off, y: p.y + ny * off, t });
-    }
-    const stroke = (width, alpha, from = 0, to = 1) => {
-      ctx.lineWidth = width;
-      ctx.strokeStyle = rgba(color, alpha);
-      ctx.beginPath();
-      let started = false;
-      for (const p of pts) {
-        if (p.t < from || p.t > to) continue;
-        if (started) ctx.lineTo(p.x, p.y);
-        else {
-          ctx.moveTo(p.x, p.y);
-          started = true;
-        }
+    if (Math.hypot(b.x - a.x, b.y - a.y) < 4) return;
+    const frame = Math.floor(clock * 16); // trail re-crackles ~16 times a second
+    const speed = (1 + level * 0.6) / SPARK_SECONDS;
+    const trail = TRAIL * (0.6 + level * 0.6);
+    const sparks = level > 0.65 ? 2 : 1;
+    const amp = 1.5 + level * 3;
+    const STEPS = 12;
+
+    for (let k = 0; k < sparks; k++) {
+      const head = (clock * speed + (noise(seed, 3) + 1) / 2 + k / sparks) % 1;
+      // Lightning trail: jagged points from the head back along the path, fading out.
+      const pts = [];
+      for (let i = 0; i <= STEPS; i++) {
+        const t = head - (trail * i) / STEPS;
+        if (t < 0) break;
+        const p = at(t);
+        const q = at(Math.min(1, t + 0.01));
+        const r = at(Math.max(0, t - 0.01));
+        let nx = -(q.y - r.y);
+        let ny = q.x - r.x;
+        const n = Math.hypot(nx, ny) || 1;
+        nx /= n;
+        ny /= n;
+        const jag = i === 0 ? 0 : noise(seed + k * 17, frame * 29 + i) * amp * Math.min(1, i / 3);
+        pts.push({ x: p.x + nx * jag, y: p.y + ny * jag, fade: 1 - i / STEPS });
       }
-      ctx.stroke();
-    };
-    const flicker = 0.75 + 0.25 * noise(seed + 9, frame);
-    stroke(4 + level * 9, (0.07 + level * 0.12) * flicker); // outer glow
-    stroke(1.6 + level * 3, (0.25 + level * 0.35) * flicker); // inner glow
-    stroke(0.8 + level * 1.2, 0.55 + level * 0.45); // hot core
-    // Surge travelling source → sink: speed and size grow with traffic.
-    const head = (clock * (0.5 + level * 1.1) + noise(seed, 1) * 0.5 + 1) % 1;
-    stroke(2 + level * 3, 0.9, Math.max(0, head - 0.14), head);
-    ctx.lineCap = 'butt';
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[i - 1];
+        const p1 = pts[i];
+        const f = p1.fade;
+        ctx.lineWidth = 3 + level * 2;
+        ctx.strokeStyle = rgba(color, 0.12 * f);
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+        ctx.lineWidth = 1 + level * 0.6;
+        ctx.strokeStyle = rgba(color, (0.45 + level * 0.4) * f);
+        ctx.stroke();
+      }
+      // The spark itself: dot-sized, bright core with a soft glow.
+      const h = pts[0];
+      if (!h) continue;
+      const g = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, 7 + level * 4);
+      g.addColorStop(0, rgba(color, 0.55));
+      g.addColorStop(1, rgba(color, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 7 + level * 4, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = rgba(C.bright, 0.95);
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, 1.6 + level * 1.1, 0, TAU);
+      ctx.fill();
+    }
   }
 
   function drawElectric(state) {
