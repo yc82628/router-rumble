@@ -221,6 +221,10 @@ function sideLabel(side, arrow, left) {
 
 const KIND_LABEL = { phone: 'PHONE', laptop: 'LAPTOP', tv: 'TV', console: 'CONSOLE', fridge: 'FRIDGE', speaker: 'SPEAKER' };
 const MAX_CHIPS = 6;
+const deviceIconIndex = (id) => {
+  const sequence = Number(String(id).slice(1));
+  return Number.isFinite(sequence) ? Math.abs(sequence) % 9 : 0;
+};
 
 function renderDevices(s) {
   const list = s.devices || [];
@@ -251,13 +255,17 @@ function renderDevices(s) {
       d.id === selected ? 'sel' : '',
     ].join(' ');
     el.style.fontSize = `${Math.min(18, 11 + d.demand / 8)}px`; // hungrier = bigger, like on the map
+    const icon = document.createElement('span');
+    icon.className = 'dev-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.style.setProperty('--device-icon', `url("/screen/device-icons/icon-${deviceIconIndex(d.id)}.png")`);
     const k = document.createElement('span');
     k.className = 'k';
     k.textContent = d.mine ? 'YOU' : d.kind === 'player' ? d.label : KIND_LABEL[d.kind] || d.label;
     const n = document.createElement('span');
     n.className = 'n';
     n.textContent = String(d.demand);
-    el.append(k, n);
+    el.append(icon, k, n);
     return el;
   });
   if (list.length > shown.length) {

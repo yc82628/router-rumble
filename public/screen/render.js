@@ -59,6 +59,32 @@ export function createRenderer(canvas, dom) {
   const FONT = getComputedStyle(document.body).fontFamily || 'monospace';
   const operatorGhost = new Image();
   operatorGhost.src = '/screen/operator-ghost.png';
+  const deviceIcons = Array.from({ length: 9 }, (_, i) => {
+    const image = new Image();
+    image.src = `/screen/device-icons/icon-${i}.png`;
+    return image;
+  });
+  const tintedIcons = new Map();
+  const iconIndex = (device) => {
+    const sequence = Number(String(device.id).slice(1));
+    return Number.isFinite(sequence) ? Math.abs(sequence) % deviceIcons.length : 0;
+  };
+  function tintedIcon(device, color) {
+    const source = deviceIcons[iconIndex(device)];
+    if (!source.complete || !source.naturalWidth) return null;
+    const key = `${iconIndex(device)}:${color}`;
+    if (tintedIcons.has(key)) return tintedIcons.get(key);
+    const icon = document.createElement('canvas');
+    icon.width = source.naturalWidth;
+    icon.height = source.naturalHeight;
+    const iconCtx = icon.getContext('2d');
+    iconCtx.drawImage(source, 0, 0);
+    iconCtx.globalCompositeOperation = 'source-in';
+    iconCtx.fillStyle = color;
+    iconCtx.fillRect(0, 0, icon.width, icon.height);
+    tintedIcons.set(key, icon);
+    return icon;
+  }
   let W = 1;
   let H = 1;
   let dpr = 1;
@@ -661,7 +687,12 @@ export function createRenderer(canvas, dom) {
       ctx.lineTo(x2, y2);
       ctx.stroke();
     };
-    switch (d.kind) {
+    const icon = tintedIcon(d, col);
+    if (icon) {
+      const size = 20;
+      const ratio = size / Math.max(icon.width, icon.height);
+      ctx.drawImage(icon, -(icon.width * ratio) / 2, -(icon.height * ratio) / 2, icon.width * ratio, icon.height * ratio);
+    } else switch (d.kind) {
       case 'player':
         if (online) {
           ctx.fillStyle = rgba(C.magenta, 0.25 + 0.15 * Math.sin(clock * 4));

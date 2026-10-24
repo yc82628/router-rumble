@@ -134,6 +134,14 @@ input:focus { outline: 2px solid var(--cyan); outline-offset: 2px; }
   touch-action: manipulation;
 }
 .chip-dev .k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-dev .dev-icon {
+  width: 23px;
+  height: 23px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--device-icon) center / contain no-repeat;
+  mask: var(--device-icon) center / contain no-repeat;
+}
 .chip-dev .n { flex: none; }
 .chip-dev.warm { color: var(--yellow); }
 .chip-dev.hot { color: var(--red); }
