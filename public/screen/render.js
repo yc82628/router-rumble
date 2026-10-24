@@ -326,23 +326,46 @@ export function createRenderer(canvas, dom) {
       ctx.stroke();
     }
 
-    // Fine, low-contrast grain keeps the field alive without competing with the network.
-    ctx.fillStyle = 'rgba(184, 255, 222, 0.08)';
-    for (let i = 0; i < 18; i++) {
-      ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+    // Soft scanlines and sparse chromatic tearing evoke a noisy video feed.
+    // Keep this under the network so names, links, and enemies stay readable.
+    ctx.fillStyle = 'rgba(211, 218, 255, 0.025)';
+    for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
+    const glitchColors = ['#ff3b9d', '#35f4ff', '#9bff55'];
+    ctx.save();
+    ctx.globalAlpha = 0.055;
+    for (let i = 0; i < 9; i++) {
+      const y = Math.random() * H;
+      const x = Math.random() * W * 0.72;
+      ctx.fillStyle = glitchColors[i % glitchColors.length];
+      ctx.fillRect(x, y, W * (0.04 + Math.random() * 0.22), 1 + Math.random() * 2);
     }
+    ctx.restore();
+
     if (staticTimer > 0) {
-      const strength = Math.min(1, staticTimer / 0.12);
+      const strength = Math.min(1, staticTimer / 0.18);
       ctx.save();
-      ctx.globalAlpha = 0.2 * strength;
-      for (let i = 0; i < 22; i++) {
-        const colors = ['#baffdf', '#72ffe0', '#c6aaff'];
-        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-        ctx.fillRect(Math.random() * W, Math.random() * H, 2 + Math.random() * W * 0.12, 1 + Math.random() * 2);
+      ctx.globalAlpha = 0.12 * strength;
+      for (let i = 0; i < 20; i++) {
+        const y = Math.random() * H;
+        const x = Math.random() * W * 0.6;
+        const width = W * (0.04 + Math.random() * 0.34);
+        const height = 1 + Math.random() * 3;
+        ctx.fillStyle = glitchColors[Math.floor(Math.random() * glitchColors.length)];
+        ctx.fillRect(x, y, width, height);
+        // Tiny offset copies create the RGB split of a damaged camera signal.
+        if (Math.random() > 0.58) {
+          ctx.globalAlpha = 0.08 * strength;
+          ctx.fillStyle = glitchColors[(i + 1) % glitchColors.length];
+          ctx.fillRect(x + 2 + Math.random() * 5, y + 1, width * (0.25 + Math.random() * 0.5), 1);
+          ctx.globalAlpha = 0.12 * strength;
+        }
       }
-      ctx.globalAlpha = 0.06 * strength;
-      ctx.fillStyle = '#d9fff0';
-      ctx.fillRect(0, Math.random() * H, W, 2);
+      // A few dim horizontal bars make the interference read as video static.
+      ctx.globalAlpha = 0.09 * strength;
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = i % 2 ? '#e7f7ff' : '#aaffea';
+        ctx.fillRect(0, Math.random() * H, W, 1);
+      }
       ctx.restore();
     }
   }
