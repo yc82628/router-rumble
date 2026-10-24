@@ -59,7 +59,8 @@ export const LEVELS = [
       { at: 15, dur: 10, mul: 1.35 }, // stand-up call
       { at: 58, dur: 12, mul: 1.45 }, // all-hands call
     ],
-    bots: { first: 10, every: 14, hp: 3, drain: 12 },
+    // First virus wave is a readable warning, then each infected AP can copy it once.
+    bots: { first: 16, every: 18, hp: 3, drain: 13, virus: true, spreadAfter: 10, spreadLimit: 1 },
     events: { first: 35, every: 0, max: 1, pool: ALL_EVENTS },
     devices: [
       ['laptop', 'laptop', 'phone'],
@@ -67,7 +68,10 @@ export const LEVELS = [
       ['laptop', 'speaker', 'phone'],
       ['laptop', 'fridge', 'phone'],
     ],
-    tutorial: [{ at: 2, text: 'Monday. 9am. Video calls in 3, 2, 1…' }],
+    tutorial: [
+      { at: 2, text: 'Monday. 9am. Video calls in 3, 2, 1…' },
+      { at: 8, text: 'Virus minions can spread to a neighbour AP. FIX them before they copy!' },
+    ],
   },
   // ---- Drafts for owner B (still being tuned).
   {
@@ -87,7 +91,8 @@ export const LEVELS = [
       { at: 50, dur: 10, mul: 1.5 },
       { at: 75, dur: 8, mul: 1.5 },
     ],
-    bots: { first: 6, every: 9, hp: 4, drain: 14 },
+    // Faster, tougher viruses arrive amid more frequent chaos events.
+    bots: { first: 10, every: 12, hp: 4, drain: 16, virus: true, spreadAfter: 8, spreadLimit: 1 },
     events: { first: 12, every: 20, max: 4, pool: ALL_EVENTS },
     devices: [
       ['phone', 'phone', 'laptop'],
@@ -96,11 +101,11 @@ export const LEVELS = [
       ['console', 'laptop', 'phone'],
       ['phone', 'speaker', 'fridge'],
     ],
-    tutorial: [],
+    tutorial: [{ at: 3, text: 'VIRAL OUTBREAK. Contain each virus before it infects another AP!' }],
   },
   {
     id: 4,
-    name: 'The Overseer',
+    name: 'ULTRON',
     tagline: 'A giant robot has seized the uplink. It commands droids. It always comes back.',
     duration: Infinity, // boss level: win by beating the boss
     routers: 5,
@@ -114,16 +119,18 @@ export const LEVELS = [
     events: null,
     bots: null, // the boss brings its own droids
     boss: {
-      name: 'OVERSEER',
+      name: 'ULTRON',
       first: 5, // seconds before it first arrives
       lives: 3, // knock it down this many times
       hp: 40, // FIX taps per player to knock it down in round 1 (+50% each round)
-      drain: 30, // bandwidth it eats from the AP it docks on (+drainPerRound each round)
-      drainPerRound: 10,
-      droidEvery: 5, // launches a droid at another AP this often
-      hopEvery: 14, // jumps to a different AP if you're too slow
+      drain: 32, // bandwidth it eats from the AP it docks on (+drainPerRound each round)
+      drainPerRound: 12,
+      droidEvery: 5, // launches a droid at another AP this often; the wave speeds up each round
+      droidRamp: 0.7,
+      minDroidEvery: 3.6,
+      hopEvery: 13, // jumps to a different AP if you're too slow
       returnAfter: 10, // seconds it stays away after being knocked down
-      droid: { hp: 2, drain: 10 },
+      droid: { hp: 2, drain: 12 },
     },
     devices: [
       ['phone', 'laptop', 'tv'],

@@ -334,6 +334,7 @@ function renderControl() {
   fix.classList.toggle('hot', Boolean(s.fix));
   fix.textContent =
     s.fix === 'crash' ? 'TAP TAP TAP! FIX'
+      : s.fix === 'virus' ? `CONTAIN VIRUS ⚠ ${s.botHp}`
       : s.fix === 'bot' ? `ZAP BOT ⚡ ${s.botHp}`
       : s.fix === 'cable' ? `REPAIR CABLE ${s.cableTaps}/${s.cableNeeded}`
       : s.fix === 'boss' ? `ZAP ${s.boss.name} ${s.boss.hp}/${s.boss.maxHp}`

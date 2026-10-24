@@ -105,12 +105,13 @@ runs fully offline.
   devices off a crashed AP brings them back online.
 - An AP above capacity for 3 s crashes for 5 s. Its devices go offline and health drains.
 - **Enemies (one rule: FIX zaps them).**
-  - Levels 1–3: **mini bots** fly down from the internet, latch onto an AP and eat its
-    bandwidth. Tap FIX on that AP to zap them (3–4 taps each).
-  - Level 4 is the final boss, **OVERSEER**: a giant robot that docks onto an AP, drains it hard
-    and launches droids at the other APs. While it attacks, **everyone's FIX hits it**. Knock it
-    down and its droids fall with it, but it comes back stronger. Beat it 3 times to win (no
-    timer on this level). Boss HP scales with the number of players.
+  - Level 1 introduces horned **minions**. Tap FIX on their AP to zap them (3 taps each).
+  - Levels 2–3 add **viruses**. They eat bandwidth and can spread once to a neighbouring AP if
+    players do not contain them in time. Level 3 sends tougher viruses more often.
+  - Level 4 is the final boss, **ULTRON**: a giant robot that docks onto an AP, drains it hard,
+    and launches interceptor droids at the other APs. While it attacks, **everyone's FIX hits it**.
+    Knock it down and its droids fall with it, but it returns stronger. Beat it 3 times to win
+    (no timer on this level). Boss HP scales with the number of players.
 - The phone shows exact load numbers; the big screen only shows bars and status words. Talk!
 - Survive 90 s to clear a level. Health 0% = network down.
 
@@ -149,7 +150,7 @@ router-rumble/
 │   ├── sim.js                  pure sim: createState(), tick(state, dt, inputs), playerView()
 │   ├── levels.js               level table (data only)
 │   ├── devices.js              device weights + factory (demand lives on devices)
-│   ├── enemies.js              mini bots + OVERSEER boss (spawn, flight, zapping)
+│   ├── enemies.js              minions, spreading viruses + ULTRON boss and droids
 │   ├── events.js               chaos events (start/each/end hooks)
 │   ├── render.js               canvas map, packets, sparks, HUD panels
 │   ├── commander.js            line queue, AI requests, canned lines

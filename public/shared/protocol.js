@@ -84,7 +84,7 @@ export const STATUS = Object.freeze({ OK: 'ok', WARN: 'warn', CRASHED: 'crashed'
  * @property {number} overload        0..1, how close an overloaded router is to crashing
  * @property {{name:string, owners:string[], blocked:boolean}|null} left
  * @property {{name:string, owners:string[], blocked:boolean}|null} right
- * @property {'crash'|'bot'|'cable'|'boss'|null} fix   what tapping Fix would do right now
+ * @property {'crash'|'bot'|'virus'|'cable'|'boss'|null} fix   what tapping Fix would do right now
  * @property {number} botHp           zaps needed to clear the bots latched onto this AP
  * @property {{name:string, hp:number, maxHp:number, here:boolean}|false} boss   boss attacking?
  * @property {number} cableTaps       progress on a cut cable next to this router

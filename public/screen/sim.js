@@ -631,6 +631,7 @@ export function playerView(state, playerId) {
     x ? { name: x.name, owners: owners(x), blocked: link.cut || x.status === 'crashed', crashed: x.status === 'crashed' } : null;
   const cutLink = [linkL, linkR].find((l) => l && l.cut);
   const botHp = state.bots.filter((b) => b.routerId === r.id && b.state === 'attached').reduce((n, b) => n + b.hp, 0);
+  const virusHere = state.bots.some((b) => b.routerId === r.id && b.state === 'attached' && b.virus);
   const boss = bossActive(state.boss);
   const ev = state.activeEvents.find(
     (e) => e.routerId === r.id || (e.linkId && (e.linkId === linkL?.id || e.linkId === linkR?.id)) || (!e.routerId && !e.linkId),
@@ -653,7 +654,7 @@ export function playerView(state, playerId) {
     overload: clamp(r.overTime / TUNING.overloadSeconds, 0, 1),
     left: side(leftR, linkL),
     right: side(rightR, linkR),
-    fix: r.status === 'crashed' ? 'crash' : botHp ? 'bot' : cutLink ? 'cable' : boss ? 'boss' : null,
+    fix: r.status === 'crashed' ? 'crash' : virusHere ? 'virus' : botHp ? 'bot' : cutLink ? 'cable' : boss ? 'boss' : null,
     cableTaps: cutLink ? cutLink.fixTaps : 0,
     cableNeeded: TUNING.cableFixTaps,
     points: Math.floor(state.points[playerId] || 0),
@@ -663,7 +664,7 @@ export function playerView(state, playerId) {
     botHp,
     boss: boss && { name: state.boss.name, hp: state.boss.hp, maxHp: state.boss.maxHp, here: state.boss.routerId === r.id },
     event: botHp
-      ? `A bot is eating your bandwidth! Tap FIX to zap it.`
+      ? virusHere ? `A virus is spreading through ${r.name}! Tap FIX to contain it.` : `A bot is eating your bandwidth! Tap FIX to zap it.`
       : boss
         ? `${state.boss.name} is attacking ${routerById(state, state.boss.routerId)?.name}! Everyone tap FIX!`
         : ev?.text,

@@ -1,7 +1,8 @@
 // Enemies, pure, called from sim.js. Owner B.
 //
-//   Mini bots   fly down from the internet, latch onto an AP and eat its bandwidth (extra load).
-//   OVERSEER    the final boss: a giant robot that docks onto an AP, drains it hard, launches its own
+//   Minions     fly down from the internet, latch onto an AP and eat its bandwidth (extra load).
+//   Viruses     appear in later levels and can spread once to a neighbouring AP.
+//   ULTRON      the final boss: a giant robot that docks onto an AP, drains it hard, launches its own
 //               droids at other APs, and keeps coming back stronger after being knocked down.
 //
 // One rule for players: FIX zaps enemies. Bots on your own AP first; while the boss is attacking,
@@ -19,7 +20,7 @@ export const bossActive = (boss) => Boolean(boss && !boss.defeated && ACTIVE.has
 export function createBoss(cfg) {
   if (!cfg) return null;
   return {
-    name: cfg.name || 'OVERSEER',
+    name: cfg.name || 'ULTRON',
     phase: 'away', // away → arriving → attacking → (hop: arriving) → retreating → away …
     timer: cfg.first ?? 4,
     lives: cfg.lives,
@@ -27,6 +28,7 @@ export function createBoss(cfg) {
     hp: 0,
     maxHp: 0,
     drain: 0,
+    droidEvery: cfg.droidEvery ?? 5,
     routerId: null,
     fromRouterId: null, // where the current flight started (null = the internet uplink)
     t: 0, // flight progress 0 (uplink/from) → 1 (docked)
@@ -41,26 +43,67 @@ function pick(list, rand) {
   return list.length ? list[Math.floor(rand() * list.length)] : null;
 }
 
-function spawnBot(state, rand, cfg, fromRouterId = null) {
+function spawnBot(state, rand, cfg, fromRouterId = null, options = {}) {
   const count = (r) => state.bots.filter((b) => b.routerId === r.id).length;
   const targets = state.routers.filter(
-    (r) => r.status !== 'crashed' && r.id !== fromRouterId && count(r) < ENEMY.maxBotsPerAP,
+    (r) => r.status !== 'crashed' && r.id !== fromRouterId &&
+      (!options.targetRouterId || r.id === options.targetRouterId) && count(r) < ENEMY.maxBotsPerAP,
   );
   const r = pick(targets, rand);
   if (!r) return;
-  state.bots.push({
+  const bot = {
     id: ++state.botSeq,
     routerId: r.id,
     fromRouterId,
-    droid: fromRouterId != null, // launched by the boss
+    droid: options.droid ?? (fromRouterId != null), // launched by the boss
+    virus: options.virus ?? Boolean(cfg.virus),
     hp: cfg.hp,
     maxHp: cfg.hp,
     drain: cfg.drain,
+    spreadAfter: cfg.spreadAfter ?? 0,
+    spreadLimit: cfg.spreadLimit ?? 0,
+    spreadDepth: options.spreadDepth ?? 0,
+    spreadTimer: (options.virus ?? cfg.virus) ? (cfg.spreadAfter ?? Infinity) : Infinity,
     state: 'flying',
     t: 0,
     spin: rand() * Math.PI * 2,
     hit: 0,
+  };
+  state.bots.push(bot);
+  return bot;
+}
+
+/** A virus gets one chance to copy itself to a neighbouring AP, then becomes harmless. */
+function spreadVirus(state, bot, rand, dt) {
+  if (!bot.virus || bot.spreadDepth >= bot.spreadLimit || !Number.isFinite(bot.spreadTimer)) return;
+  bot.spreadTimer -= dt;
+  if (bot.spreadTimer > 0) return;
+
+  const source = state.routers.find((r) => r.id === bot.routerId);
+  if (!source) return;
+  const targets = state.routers.filter((r) =>
+    Math.abs(r.index - source.index) === 1 &&
+    r.status !== 'crashed' &&
+    state.bots.filter((other) => other.routerId === r.id).length < ENEMY.maxBotsPerAP,
+  );
+  const target = pick(targets, rand);
+  if (!target) {
+    bot.spreadTimer = 2; // retry if the neighbouring APs are crashed or full
+    return;
+  }
+
+  const child = spawnBot(state, rand, bot, source.id, {
+    droid: false,
+    virus: true,
+    spreadDepth: bot.spreadDepth + 1,
+    targetRouterId: target.id,
   });
+  if (!child) {
+    bot.spreadTimer = 2;
+    return;
+  }
+  bot.spreadTimer = Infinity;
+  state.emitted.push({ type: 'virusSpread', routerId: target.id, router: target.name, from: source.name });
 }
 
 function runBoss(state, dt, rand) {
@@ -77,6 +120,7 @@ function runBoss(state, dt, rand) {
     boss.round++;
     boss.maxHp = boss.hp = Math.round(cfg.hp * players * (1 + 0.5 * (boss.round - 1)));
     boss.drain = cfg.drain + cfg.drainPerRound * (boss.round - 1);
+    boss.droidEvery = Math.max(cfg.minDroidEvery ?? 0.5, cfg.droidEvery - cfg.droidRamp * (boss.round - 1));
     boss.routerId = target.id;
     boss.fromRouterId = null;
     boss.phase = 'arriving';
@@ -86,14 +130,19 @@ function runBoss(state, dt, rand) {
     boss.t = Math.min(1, boss.t + dt / ENEMY.bossFlightSeconds);
     if (boss.t >= 1) {
       boss.phase = 'attacking';
-      boss.droidTimer = cfg.droidEvery * 0.5;
+      boss.droidTimer = boss.droidEvery * 0.5;
       boss.hopTimer = cfg.hopEvery;
     }
   } else if (boss.phase === 'attacking') {
     boss.droidTimer -= dt;
     if (boss.droidTimer <= 0) {
-      boss.droidTimer = cfg.droidEvery;
-      spawnBot(state, rand, cfg.droid, boss.routerId);
+      boss.droidTimer = boss.droidEvery;
+      const droid = {
+        ...cfg.droid,
+        hp: cfg.droid.hp + boss.round - 1,
+        drain: cfg.droid.drain + 2 * (boss.round - 1),
+      };
+      spawnBot(state, rand, droid, boss.routerId);
     }
     boss.hopTimer -= dt;
     if (boss.hopTimer <= 0) {
@@ -141,8 +190,12 @@ export function runEnemies(state, dt, rand) {
     if (b.t >= 1) {
       b.state = 'attached';
       const r = state.routers.find((x) => x.id === b.routerId);
-      state.emitted.push({ type: 'botAttached', routerId: b.routerId, router: r?.name, droid: b.droid });
+      state.emitted.push({ type: 'botAttached', routerId: b.routerId, router: r?.name, droid: b.droid, virus: b.virus });
     }
+  }
+
+  for (const b of [...state.bots]) {
+    if (b.state === 'attached' && b.virus) spreadVirus(state, b, rand, dt);
   }
 
   for (const r of state.routers) r.botLoad = 0;

@@ -33,12 +33,12 @@ const CANNED = {
     'Did someone push traffic onto {router} without asking? Thought so.',
   ],
   botAttached: [
-    'A mini bot is chewing on {router}. Tap FIX and zap it!',
-    'Bot on {router}! It eats bandwidth for breakfast. Zap it.',
+    'A minion is chewing on {router}. Tap FIX and zap it!',
+    'Enemy on {router}! It eats bandwidth for breakfast. Zap it.',
     'We have a pest on {router}. FIX it. With prejudice.',
   ],
   bossArrive: [
-    'That is the Overseer. It wants our bandwidth. Everyone, FIX FIX FIX!',
+    'That is ULTRON. It wants our bandwidth. Everyone, FIX FIX FIX!',
     'Big robot incoming. Its droids are with it. All hands on FIX!',
     'It is back. Of course it is back. Tap like the internet depends on it!',
   ],

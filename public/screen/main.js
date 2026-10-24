@@ -238,8 +238,14 @@ function onSimEvent(e) {
       sfx.join();
       break;
     case 'botAttached':
-      log(`${e.droid ? 'Droid' : 'Mini bot'} latched onto ${e.router}`, 'bad');
-      if (!e.droid) commander.react('botAttached', aiContext({ router: e.router }));
+      log(`${e.droid ? 'Droid' : e.virus ? 'Virus' : 'Minion'} latched onto ${e.router}`, 'bad');
+      if (!e.droid) commander.react('botAttached', aiContext({ router: e.router, enemy: e.virus ? 'virus' : 'bot' }));
+      break;
+    case 'virusSpread':
+      renderer.banner(`⚠ VIRUS SPREAD ${e.from} → ${e.router}! CONTAIN IT!`, 'event', 5000);
+      log(`Virus spread from ${e.from} to ${e.router}`, 'bad');
+      sfx.alarm();
+      commander.react('event', aiContext({ event: 'Virus spread', router: e.router, detail: `spread from ${e.from}` }));
       break;
     case 'botZapped':
       renderer.fx(e);

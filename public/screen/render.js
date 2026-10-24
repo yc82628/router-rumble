@@ -912,7 +912,7 @@ export function createRenderer(canvas, dom) {
   // ---------------------------------------------------------------- enemies
 
   const routerIndex = (state, id) => state.routers.findIndex((r) => r.id === id);
-  const bossSize = () => clamp(lay.R * 1.4, 28, 58);
+  const bossSize = () => clamp(lay.R * 1.5, 34, 64);
   const bossDock = (p) => ({ x: p.x, y: p.y - lay.R - 34 - bossSize() });
 
   /** Where a bot is: flying from the uplink (or the boss's AP) to its AP, then orbiting it. */
@@ -930,36 +930,96 @@ export function createRenderer(canvas, dom) {
   }
 
   function drawBot(b, pos) {
-    const col = b.hit > 0 ? C.bright : b.droid ? C.red : C.orange;
+    const col = b.hit > 0 ? C.bright : b.virus ? C.magenta : b.droid ? C.red : C.orange;
     ctx.save();
     ctx.translate(pos.x, pos.y);
-    if (b.droid) ctx.scale(0.85, 0.85);
-    // rotor arms
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-12, -7);
-    ctx.lineTo(12, -7);
-    ctx.stroke();
-    const blade = 4 + Math.abs(Math.sin(clock * 30)) * 3;
-    for (const x of [-12, 12]) {
+    if (b.droid) {
+      ctx.scale(0.85, 0.85);
+      // Interceptor droid rotors.
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.ellipse(x, -8, blade, 1.5, 0, 0, TAU);
+      ctx.moveTo(-12, -7);
+      ctx.lineTo(12, -7);
       ctx.stroke();
+      const blade = 4 + Math.abs(Math.sin(clock * 30)) * 3;
+      for (const x of [-12, 12]) {
+        ctx.beginPath();
+        ctx.ellipse(x, -8, blade, 1.5, 0, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#1c0b06';
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(Math.sin(clock * 3 + b.id) * 2, 0.5, 2.5, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (b.virus) {
+      // Temporary code-drawn virus until the supplied enemy art is ready.
+      ctx.rotate(clock * 0.8 + b.spin * 0.15);
+      ctx.strokeStyle = col;
+      ctx.fillStyle = '#14091a';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const a = (i * TAU) / 8;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 6, Math.sin(a) * 6);
+        ctx.lineTo(Math.cos(a) * 12, Math.sin(a) * 12);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.5, 0, TAU);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else {
+      // Horned minion silhouette, drawn in code so the stock-watermarked reference isn't shipped.
+      ctx.strokeStyle = col;
+      ctx.fillStyle = '#1c0b06';
+      ctx.lineWidth = 1.6;
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(side * 4, -4);
+        ctx.lineTo(side * 10, -13);
+        ctx.lineTo(side * 9, -3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(-7, -5);
+      ctx.quadraticCurveTo(-8, -9, -4, -9);
+      ctx.lineTo(4, -9);
+      ctx.quadraticCurveTo(8, -9, 7, -5);
+      ctx.lineTo(8, 5);
+      ctx.quadraticCurveTo(7, 9, 3, 9);
+      ctx.lineTo(-3, 9);
+      ctx.quadraticCurveTo(-8, 9, -8, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = col;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 6;
+      for (const eye of [-3, 3]) {
+        ctx.beginPath();
+        ctx.arc(eye, -1, 1.5, 0, TAU);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
     }
-    // body + single eye
-    ctx.fillStyle = '#1c0b06';
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, TAU);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = col;
-    ctx.shadowColor = col;
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(Math.sin(clock * 3 + b.id) * 2, 0.5, 2.5, 0, TAU);
-    ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.restore();
     // hp pips
     if (b.state === 'attached') {
@@ -974,7 +1034,8 @@ export function createRenderer(canvas, dom) {
       if (!pos) return;
       if (b.state === 'attached') {
         const p = lay.routers[routerIndex(state, b.routerId)];
-        ctx.strokeStyle = rgba(b.droid ? C.red : C.orange, 0.35 + 0.2 * Math.sin(clock * 12 + k));
+        const tether = b.virus ? C.magenta : b.droid ? C.red : C.orange;
+        ctx.strokeStyle = rgba(tether, 0.35 + 0.2 * Math.sin(clock * 12 + k));
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
@@ -997,7 +1058,7 @@ export function createRenderer(canvas, dom) {
     return p;
   }
 
-  /** OVERSEER: a hovering mech with one scanning visor, shoulder spikes and grabbing claws. */
+  /** ULTRON: a hovering mech with a broad red smile-mask and intercepting claws. */
   function drawBoss(state) {
     const boss = state.boss;
     if (!boss || boss.defeated) return;
@@ -1085,22 +1146,38 @@ export function createRenderer(canvas, dom) {
       ctx.fill();
       ctx.stroke();
     }
-    // head with a scanning visor
+    // Broad face plate with glowing eyes and a grin.
     ctx.beginPath();
-    ctx.rect(-S * 0.42, -S * 0.75, S * 0.84, S * 0.55);
+    ctx.moveTo(-S * 0.58, -S * 0.9);
+    ctx.quadraticCurveTo(-S * 0.7, -S * 0.94, -S * 0.72, -S * 0.75);
+    ctx.lineTo(-S * 0.66, -S * 0.2);
+    ctx.quadraticCurveTo(0, S * 0.05, S * 0.66, -S * 0.2);
+    ctx.lineTo(S * 0.72, -S * 0.75);
+    ctx.quadraticCurveTo(S * 0.7, -S * 0.94, S * 0.58, -S * 0.9);
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.shadowColor = C.red;
+    ctx.shadowBlur = 12;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(side * S * 0.32, -S * 0.58, S * 0.12, S * 0.16, side * -0.16, 0, TAU);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-S * 0.42, -S * 0.43);
+    ctx.quadraticCurveTo(0, -S * 0.06, S * 0.42, -S * 0.43);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Antenna crest.
     ctx.beginPath();
     ctx.moveTo(0, -S * 0.75);
     ctx.lineTo(0, -S * 1.0);
     ctx.stroke();
-    ctx.fillStyle = '#000';
-    ctx.fillRect(-S * 0.32, -S * 0.56, S * 0.64, S * 0.16);
-    ctx.fillStyle = col;
-    ctx.shadowColor = C.red;
-    ctx.shadowBlur = 14;
-    ctx.fillRect(Math.sin(clock * 2.5) * S * 0.22 - S * 0.08, -S * 0.55, S * 0.16, S * 0.14);
-    ctx.shadowBlur = 0;
     ctx.restore();
 
     // name + HP bar
