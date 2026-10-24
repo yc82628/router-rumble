@@ -4,6 +4,8 @@ import { effectiveCapacity, TUNING } from './sim.js';
 
 const TAU = Math.PI * 2;
 const MAX_PACKETS = 700;
+// How traffic is drawn: 'electric' = crackling arcs along each connection, 'packets' = moving dots.
+const FLOW_STYLE = 'electric';
 
 export const COLORS = {
   bg: '#010805',
@@ -158,7 +160,7 @@ export function createRenderer(canvas, dom) {
       while (acc >= 1) {
         acc -= 1;
         const p = make();
-        if (p && packets.length < MAX_PACKETS) packets.push(p);
+        if (p && FLOW_STYLE === 'packets' && packets.length < MAX_PACKETS) packets.push(p);
       }
       spawnAcc.set(key, acc);
     };
@@ -432,6 +434,114 @@ export function createRenderer(canvas, dom) {
     }
     packets = keep;
     ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------------------------------------------------------------- electric flow
+  // Each live connection is a crackling lightning arc. Brightness/thickness follow the traffic on
+  // it; a brighter surge travels along it in the direction traffic flows (device → AP → internet).
+
+  /** Cheap deterministic noise in [-1, 1] for (seed, step). */
+  const noise = (seed, step) => {
+    const s = Math.sin(seed * 127.1 + step * 311.7) * 43758.5453;
+    return (s - Math.floor(s)) * 2 - 1;
+  };
+
+  /**
+   * One electric arc along a path. `at(t)` gives the point at t∈[0,1] (from source to sink).
+   * level 0..1 = how much traffic; color = traffic colour; seed keeps each arc's shape distinct.
+   */
+  function drawArc(at, level, color, seed) {
+    if (level <= 0.01) return;
+    const a = at(0);
+    const b = at(1);
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    if (length < 4) return;
+    const steps = Math.max(6, Math.min(26, Math.round(length / 14)));
+    const frame = Math.floor(clock * 18); // the arc re-crackles ~18 times a second
+    const amp = 2 + level * 7;
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const p = at(t);
+      const q = at(Math.min(1, t + 0.01));
+      const r = at(Math.max(0, t - 0.01));
+      let nx = -(q.y - r.y);
+      let ny = q.x - r.x;
+      const n = Math.hypot(nx, ny) || 1;
+      nx /= n;
+      ny /= n;
+      const taper = Math.sin(Math.PI * t); // pinned at both ends
+      const off = (noise(seed, frame * 31 + i) * 0.75 + Math.sin(t * 9 + clock * 7 + seed) * 0.25) * amp * taper;
+      pts.push({ x: p.x + nx * off, y: p.y + ny * off, t });
+    }
+    const stroke = (width, alpha, from = 0, to = 1) => {
+      ctx.lineWidth = width;
+      ctx.strokeStyle = rgba(color, alpha);
+      ctx.beginPath();
+      let started = false;
+      for (const p of pts) {
+        if (p.t < from || p.t > to) continue;
+        if (started) ctx.lineTo(p.x, p.y);
+        else {
+          ctx.moveTo(p.x, p.y);
+          started = true;
+        }
+      }
+      ctx.stroke();
+    };
+    const flicker = 0.75 + 0.25 * noise(seed + 9, frame);
+    stroke(4 + level * 9, (0.07 + level * 0.12) * flicker); // outer glow
+    stroke(1.6 + level * 3, (0.25 + level * 0.35) * flicker); // inner glow
+    stroke(0.8 + level * 1.2, 0.55 + level * 0.45); // hot core
+    // Surge travelling source → sink: speed and size grow with traffic.
+    const head = (clock * (0.5 + level * 1.1) + noise(seed, 1) * 0.5 + 1) % 1;
+    stroke(2 + level * 3, 0.9, Math.max(0, head - 0.14), head);
+    ctx.lineCap = 'butt';
+  }
+
+  function drawElectric(state) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    const { R } = lay;
+    for (const r of state.routers) {
+      const i = r.index;
+      const ap = lay.routers[i];
+      if (!ap) continue;
+      const crashed = r.status === 'crashed';
+      const apColor = loadColor(r);
+      // devices → AP
+      if (!crashed || r.failover) {
+        const sink = { x: ap.x, y: ap.y + R + 34 };
+        for (const d of r.devices) {
+          const pos = devPos.get(d.id);
+          if (!pos || d.reconnect > 0) continue;
+          const ctl = deviceControl(sink, pos);
+          const color = d.surge > 0 || apColor === C.red ? C.red : d.demand > 25 || apColor === C.yellow ? C.yellow : C.cyan;
+          const id = Number(String(d.id).replace(/\D/g, '')) || i;
+          drawArc((t) => quad(pos, ctl, sink, t), clamp(d.demand / 45, 0.12, 1), color, id * 1.37);
+        }
+      }
+      // AP → internet uplink
+      if (!crashed) {
+        const served = Math.min(r.load, effectiveCapacity(r));
+        const from = { x: ap.x, y: ap.y - R };
+        drawArc((t) => lerp(from, lay.uplink, t), clamp(served / 110, 0.1, 1), apColor === C.red ? C.red : C.cyan, 500 + i * 7.3);
+      }
+    }
+    // AP ↔ AP forwarded traffic
+    for (const l of state.links) {
+      if (l.cut) continue;
+      const a = lay.routers[l.a];
+      const b = lay.routers[l.b];
+      if (!a || !b) continue;
+      const ab = (t) => lerp({ x: a.x + R, y: a.y }, { x: b.x - R, y: b.y }, t);
+      const ba = (t) => ab(1 - t);
+      if (l.flowAB > 0.5) drawArc(ab, clamp(l.flowAB / 35, 0.15, 1), C.yellow, 900 + l.a * 3.1);
+      if (l.flowBA > 0.5) drawArc(ba, clamp(l.flowBA / 35, 0.15, 1), C.yellow, 950 + l.a * 3.7);
+    }
+    ctx.restore();
   }
 
   function drawUplink() {
@@ -1011,7 +1121,8 @@ export function createRenderer(canvas, dom) {
     drawBackground();
     drawDrag(state);
     drawLinks(state);
-    drawPackets(dt);
+    if (FLOW_STYLE === 'electric') drawElectric(state);
+    else drawPackets(dt);
     drawUplink();
     for (const r of state.routers) drawRouter(state, r);
     for (const r of state.routers) {
