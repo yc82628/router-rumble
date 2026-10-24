@@ -1,0 +1,23 @@
+# Render Blueprint: one always-on Node web service (Socket.io needs a long-running server).
+# Render → New → Blueprint → pick this repo. Pushes to main redeploy automatically.
+services:
+  - type: web
+    name: router-rumble
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MAX_PLAYERS_PER_ROOM
+        value: "10"
+      - key: MAX_ROOMS
+        value: "30"
+      # Optional: live AI commander lines. Set these in the Render dashboard, never in git.
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        sync: false
