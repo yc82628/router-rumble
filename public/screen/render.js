@@ -1133,7 +1133,10 @@ export function createRenderer(canvas, dom) {
     return p;
   }
 
-  /** ULTRON: a hovering mech with a broad red smile-mask and intercepting claws. */
+  /**
+   * OVERSEER (original design): a hovering mech with a hexagonal helmet, one scanning visor slit,
+   * a grille of Wi-Fi signal bars that go dark as it takes damage, a radar dish, and claws.
+   */
   function drawBoss(state) {
     const boss = state.boss;
     if (!boss || boss.defeated) return;
@@ -1221,43 +1224,63 @@ export function createRenderer(canvas, dom) {
       ctx.fill();
       ctx.stroke();
     }
-    // Broad face plate with glowing eyes and a grin.
+    // Hexagonal helmet.
+    ctx.fillStyle = '#16060a';
     ctx.beginPath();
-    ctx.moveTo(-S * 0.58, -S * 0.9);
-    ctx.quadraticCurveTo(-S * 0.7, -S * 0.94, -S * 0.72, -S * 0.75);
-    ctx.lineTo(-S * 0.66, -S * 0.2);
-    ctx.quadraticCurveTo(0, S * 0.05, S * 0.66, -S * 0.2);
-    ctx.lineTo(S * 0.72, -S * 0.75);
-    ctx.quadraticCurveTo(S * 0.7, -S * 0.94, S * 0.58, -S * 0.9);
+    ctx.moveTo(-S * 0.46, -S * 0.98);
+    ctx.lineTo(S * 0.46, -S * 0.98);
+    ctx.lineTo(S * 0.64, -S * 0.66);
+    ctx.lineTo(S * 0.48, -S * 0.2);
+    ctx.lineTo(-S * 0.48, -S * 0.2);
+    ctx.lineTo(-S * 0.64, -S * 0.66);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = col;
+
+    // One visor slit with a scanning eye sweeping side to side, like a security camera.
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-S * 0.5, -S * 0.76, S, S * 0.17);
     ctx.shadowColor = C.red;
-    ctx.shadowBlur = 12;
-    for (const side of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(side * S * 0.32, -S * 0.58, S * 0.12, S * 0.16, side * -0.16, 0, TAU);
-      ctx.fill();
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = col;
+    const sweep = Math.sin(clock * 2.2) * S * 0.36;
+    ctx.fillRect(sweep - S * 0.11, -S * 0.73, S * 0.22, S * 0.11);
+    ctx.fillStyle = rgba(C.red, 0.35);
+    ctx.fillRect(-S * 0.5, -S * 0.69, S, S * 0.03); // faint scan line across the visor
+
+    // Grille of signal bars (its "mouth"): bars go dark as the team knocks its HP down.
+    const lit = Math.ceil(4 * (boss.hp / Math.max(1, boss.maxHp)));
+    for (let i = 0; i < 4; i++) {
+      const bh = S * (0.07 + i * 0.045);
+      const bx = -S * 0.27 + i * S * 0.15;
+      ctx.fillStyle = i < lit ? col : rgba(C.red, 0.18);
+      ctx.fillRect(bx, -S * 0.27 - bh, S * 0.09, bh);
     }
-    ctx.beginPath();
-    ctx.moveTo(-S * 0.42, -S * 0.43);
-    ctx.quadraticCurveTo(0, -S * 0.06, S * 0.42, -S * 0.43);
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 3;
-    ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Antenna crest.
+    // Radar dish on a short mast, tilting as it scans.
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(0, -S * 0.75);
-    ctx.lineTo(0, -S * 1.0);
+    ctx.moveTo(0, -S * 0.98);
+    ctx.lineTo(0, -S * 1.12);
     ctx.stroke();
+    ctx.save();
+    ctx.translate(0, -S * 1.14);
+    ctx.rotate(Math.sin(clock * 1.3) * 0.6);
+    ctx.beginPath();
+    ctx.arc(0, 0, S * 0.2, Math.PI * 1.08, Math.PI * 1.92);
+    ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(0, -S * 0.09, S * 0.035, 0, TAU);
+    ctx.fill();
+    ctx.restore();
     ctx.restore();
 
     // name + HP bar
     const bw = S * 2.6;
-    const by = y - S * 1.25;
+    const by = y - S * 1.5; // above the radar dish
     ctx.fillStyle = '#02060a';
     ctx.fillRect(x - bw / 2, by, bw, 7);
     ctx.fillStyle = C.red;

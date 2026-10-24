@@ -111,7 +111,7 @@ runs fully offline.
     ramp begins.
   - Levels 2–3 add **viruses**. They eat bandwidth and can spread once to a neighbouring AP if
     players do not contain them in time. Level 3 sends tougher viruses more often.
-  - Level 4 is the final boss, **ULTRON**: a giant robot that docks onto an AP, drains it hard,
+  - Level 4 is the final boss, **OVERSEER** (an original character): a giant robot that docks onto an AP, drains it hard,
     and launches interceptor droids at the other APs. While it attacks, **everyone's FIX hits it**.
     Knock it down and its droids fall with it, but it returns stronger. Beat it 3 times to win
     (no timer on this level). Boss HP scales with the number of players.
@@ -155,7 +155,7 @@ router-rumble/
 │   ├── sim.js                  pure sim: createState(), tick(state, dt, inputs), playerView()
 │   ├── levels.js               level table (data only)
 │   ├── devices.js              device weights + factory (demand lives on devices)
-│   ├── enemies.js              minions, spreading viruses + ULTRON boss and droids
+│   ├── enemies.js              minions, spreading viruses + OVERSEER boss and droids
 │   ├── events.js               chaos events (start/each/end hooks)
 │   ├── render.js               canvas map, packets, sparks, HUD panels
 │   ├── commander.js            line queue, AI requests, canned lines

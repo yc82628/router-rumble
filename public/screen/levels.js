@@ -107,7 +107,7 @@ export const LEVELS = [
   },
   {
     id: 4,
-    name: 'ULTRON',
+    name: 'The Overseer',
     tagline: 'A giant robot has seized the uplink. It commands droids. It always comes back.',
     duration: Infinity, // boss level: win by beating the boss
     routers: 5,
@@ -121,7 +121,7 @@ export const LEVELS = [
     events: null,
     bots: null, // the boss brings its own droids
     boss: {
-      name: 'ULTRON',
+      name: 'OVERSEER',
       first: 5, // seconds before it first arrives
       lives: 3, // knock it down this many times
       hp: 40, // FIX taps per player to knock it down in round 1 (+50% each round)

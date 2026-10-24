@@ -2,7 +2,7 @@
 //
 //   Minions     fly down from the internet, latch onto an AP and eat its bandwidth (extra load).
 //   Viruses     appear in later levels and can spread once to a neighbouring AP.
-//   ULTRON      the final boss: a giant robot that docks onto an AP, drains it hard, launches its own
+//   OVERSEER    the final boss: a giant robot that docks onto an AP, drains it hard, launches its own
 //               droids at other APs, and keeps coming back stronger after being knocked down.
 //
 // One rule for players: FIX zaps enemies. Bots on your own AP first; while the boss is attacking,
@@ -20,7 +20,7 @@ export const bossActive = (boss) => Boolean(boss && !boss.defeated && ACTIVE.has
 export function createBoss(cfg) {
   if (!cfg) return null;
   return {
-    name: cfg.name || 'ULTRON',
+    name: cfg.name || 'OVERSEER',
     phase: 'away', // away → arriving → attacking → (hop: arriving) → retreating → away …
     timer: cfg.first ?? 4,
     lives: cfg.lives,
