@@ -2,7 +2,7 @@
 
 > Keep the internet alive together, while the internet tries to kill you.
 
-A co-op party game. One big screen shows a HackNet-style netops console with the Wi-Fi network:
+A co-op party game. One big screen shows a phosphor-green network control field with the Wi-Fi network:
 an internet uplink, a row of access points (APs) and the devices hanging off them. Every player's
 phone is a controller **and** a device on that network. Routers overload, crash, and the team
 has to reroute traffic before the network health hits 0.
@@ -139,7 +139,8 @@ router-rumble/
 ├── scripts/loadtest.js         fake screens + phones to stress the server
 ├── public/shared/protocol.js   event names, actions, phases, PlayerState typedef
 ├── public/screen/
-│   ├── index.html, style.css   console layout (top bar, commander + log, map, operators)
+│   ├── index.html, style.css   compact HUD, network map, incident drawer, operators
+│   ├── operator-ghost.png      original low-opacity background art for the map
 │   ├── main.js                 sockets, lobby → countdown → playing → levelEnd/gameOver
 │   ├── sim.js                  pure sim: createState(), tick(state, dt, inputs), playerView()
 │   ├── levels.js               level table (data only)
@@ -172,9 +173,9 @@ console.log(s.result, s.health, s.crashes);
 
 - Levels 3–4 are drafts in `levels.js` (they load and play, but are untuned).
 - Role shuffle (from the brief) is not implemented.
-- Real sound, art polish, TTS for the commander.
+- Real sound, additional art polish, TTS for the commander.
 
 ## Rules
 
 - Never commit `.env` or API keys. Keys stay on the server.
-- Original assets only: everything is drawn in code, sounds are synthesized.
+- Original assets only: the network is drawn in code, the operator background is original generated art, and sounds are synthesized.

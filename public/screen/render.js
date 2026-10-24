@@ -6,18 +6,18 @@ const TAU = Math.PI * 2;
 const MAX_PACKETS = 700;
 
 export const COLORS = {
-  bg: '#05080d',
-  grid: 'rgba(61, 242, 255, 0.045)',
-  line: '#16303d',
-  cyan: '#3df2ff',
-  green: '#46ff8f',
-  yellow: '#ffd23d',
-  red: '#ff3d5a',
-  magenta: '#ff4fd8',
-  orange: '#ff8a3d',
-  dim: '#2b4152',
-  text: '#9fb7cc',
-  bright: '#e8f6ff',
+  bg: '#020906',
+  grid: 'rgba(99, 244, 177, 0.045)',
+  line: '#245342',
+  cyan: '#85f8cf',
+  green: '#63f4b1',
+  yellow: '#f8c75d',
+  red: '#ff667a',
+  magenta: '#ff8ad5',
+  orange: '#ffad73',
+  dim: '#416a59',
+  text: '#a0c6b3',
+  bright: '#effff5',
 };
 const C = COLORS;
 
@@ -53,6 +53,8 @@ function loadColor(r) {
 export function createRenderer(canvas, dom) {
   const ctx = canvas.getContext('2d');
   const FONT = getComputedStyle(document.body).fontFamily || 'monospace';
+  const operatorGhost = new Image();
+  operatorGhost.src = '/screen/operator-ghost.png';
   let W = 1;
   let H = 1;
   let dpr = 1;
@@ -87,9 +89,9 @@ export function createRenderer(canvas, dom) {
     const padX = W * 0.05;
     const span = W - padX * 2;
     const cell = span / n;
-    const R = clamp(Math.min(cell * 0.17, H * 0.07), 16, 42);
-    const uplink = { x: W / 2, y: H * 0.12 };
-    const routers = state.routers.map((_, i) => ({ x: padX + cell * (i + 0.5), y: H * 0.45 }));
+    const R = clamp(Math.min(cell * 0.17, H * 0.075), 16, 48);
+    const uplink = { x: W / 2, y: H * 0.105 };
+    const routers = state.routers.map((_, i) => ({ x: padX + cell * (i + 0.5), y: H * 0.43 }));
     const targets = new Map();
     state.routers.forEach((r, i) => {
       const m = r.devices.length;
@@ -97,7 +99,7 @@ export function createRenderer(canvas, dom) {
       r.devices.forEach((d, k) => {
         targets.set(d.id, {
           x: routers[i].x + (m === 1 ? 0 : (k / (m - 1) - 0.5) * spread),
-          y: H * 0.78 + (k % 2 ? 30 : 0),
+          y: H * 0.76 + (k % 2 ? 30 : 0),
         });
       });
     });
@@ -226,17 +228,58 @@ export function createRenderer(canvas, dom) {
   function drawBackground() {
     ctx.fillStyle = C.bg;
     ctx.fillRect(-20, -20, W + 40, H + 40);
+
+    // An atmospheric signal ghost sits well behind the actual network. It is
+    // intentionally faint so packets, APs and drag targets remain the focus.
+    if (operatorGhost.complete && operatorGhost.naturalWidth) {
+      const h = H * 0.72;
+      const w = h * operatorGhost.naturalWidth / operatorGhost.naturalHeight;
+      ctx.globalAlpha = 0.075;
+      ctx.drawImage(operatorGhost, W * 0.055, H * 0.035, w, h);
+      ctx.globalAlpha = 1;
+    }
+
+    const atmosphere = ctx.createRadialGradient(W * 0.5, H * 0.43, H * 0.05, W * 0.5, H * 0.43, W * 0.66);
+    atmosphere.addColorStop(0, 'rgba(35, 113, 73, 0.095)');
+    atmosphere.addColorStop(1, 'rgba(2, 9, 6, 0)');
+    ctx.fillStyle = atmosphere;
+    ctx.fillRect(0, 0, W, H);
+
     ctx.strokeStyle = C.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let x = (W / 2) % 32; x < W; x += 32) {
+    for (let x = (W / 2) % 40; x < W; x += 40) {
       ctx.moveTo(x + 0.5, 0);
       ctx.lineTo(x + 0.5, H);
     }
-    for (let y = 0; y < H; y += 32) {
+    for (let y = 0; y < H; y += 40) {
       ctx.moveTo(0, y + 0.5);
       ctx.lineTo(W, y + 0.5);
     }
+    ctx.stroke();
+
+    // A few large radar arcs give the empty field scale without adding UI.
+    ctx.strokeStyle = rgba(C.green, 0.035);
+    ctx.lineWidth = 1;
+    for (const radius of [H * 0.25, H * 0.44, H * 0.64]) {
+      ctx.beginPath();
+      ctx.arc(W / 2, H * 0.43, radius, 0, TAU);
+      ctx.stroke();
+    }
+  }
+
+  function channel(x1, y1, x2, y2, color, strength = 1) {
+    ctx.strokeStyle = rgba(color, 0.07 * strength);
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.strokeStyle = rgba(color, 0.37 * strength);
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
   }
 
@@ -245,26 +288,16 @@ export function createRenderer(canvas, dom) {
     // uplink → APs
     for (const r of state.routers) {
       const p = lay.routers[r.index];
-      ctx.strokeStyle = r.status === 'crashed' ? rgba(C.red, 0.25) : rgba(C.cyan, 0.22);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(lay.uplink.x, lay.uplink.y);
-      ctx.lineTo(p.x, p.y - R);
-      ctx.stroke();
+      channel(lay.uplink.x, lay.uplink.y, p.x, p.y - R, r.status === 'crashed' ? C.red : C.cyan, 0.7);
     }
     // devices → AP
     for (const r of state.routers) {
       const p = lay.routers[r.index];
-      ctx.strokeStyle = r.status === 'crashed' ? rgba(C.dim, 0.35) : rgba(C.green, 0.16);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
       for (const dev of r.devices) {
         const d = devPos.get(dev.id);
         if (!d) continue;
-        ctx.moveTo(p.x, p.y + R + 34);
-        ctx.lineTo(d.x, d.y);
+        channel(p.x, p.y + R + 34, d.x, d.y, r.status === 'crashed' ? C.dim : C.green, 0.5);
       }
-      ctx.stroke();
     }
     // AP ↔ AP
     ctx.font = `bold 16px ${FONT}`;
@@ -293,12 +326,7 @@ export function createRenderer(canvas, dom) {
         ctx.font = `bold 16px ${FONT}`;
         continue;
       }
-      ctx.strokeStyle = rgba(C.cyan, 0.35);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x1, a.y);
-      ctx.lineTo(x2, b.y);
-      ctx.stroke();
+      channel(x1, a.y, x2, b.y, C.cyan, 1.1);
       // Forward-share chevrons: › per 10% pushed right (above), ‹ per 10% pushed left (below).
       const right = state.routers[l.a].shareR;
       const left = state.routers[l.b].shareL;
@@ -324,14 +352,21 @@ export function createRenderer(canvas, dom) {
       if (!pos) continue;
       keep.push(p);
       const color = p.kind === 'up' ? C.cyan : p.kind === 'side' ? C.yellow : C.green;
-      ctx.fillStyle = rgba(color, 0.18);
+      const tail = packetPos({ ...p, t: Math.max(0, p.t - 0.035) });
+      if (tail) {
+        ctx.strokeStyle = rgba(color, 0.45);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tail.x, tail.y);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+      }
+      ctx.fillStyle = rgba(color, 0.16);
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 5, 0, TAU);
+      ctx.arc(pos.x, pos.y, 6, 0, TAU);
       ctx.fill();
       ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 1.8, 0, TAU);
-      ctx.fill();
+      ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
     }
     packets = keep;
     ctx.globalCompositeOperation = 'source-over';
@@ -399,14 +434,37 @@ export function createRenderer(canvas, dom) {
     ctx.arc(x, y, R * 2.3, 0, TAU);
     ctx.fill();
 
+    // Concentric instrumentation makes the APs read as the primary controls.
+    ctx.strokeStyle = rgba(col, 0.22);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x, y, R + 12, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = rgba(col, 0.66);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, R + 12, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(ratio / 1.5, 0, 1));
+    ctx.stroke();
+    ctx.strokeStyle = rgba(col, 0.38);
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * TAU;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(angle) * (R + 16), y + Math.sin(angle) * (R + 16));
+      ctx.lineTo(x + Math.cos(angle) * (R + 19), y + Math.sin(angle) * (R + 19));
+      ctx.stroke();
+    }
+
     // body
-    ctx.fillStyle = crashed ? '#1a050a' : '#07131b';
+    ctx.fillStyle = crashed ? '#190609' : '#06170f';
     ctx.strokeStyle = col;
     ctx.lineWidth = 2.5 + r.fixPulse * 3;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.arc(x, y, R, 0, TAU);
     ctx.fill();
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
     const bars = crashed ? 0 : ratio > 1 ? 1 : ratio > TUNING.warnRatio ? 2 : 3;
     drawWifi(x, y + R * 0.32, R * 0.72, col, bars);
