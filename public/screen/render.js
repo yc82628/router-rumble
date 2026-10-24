@@ -92,6 +92,7 @@ export function createRenderer(canvas, dom) {
   let dpr = 1;
   let clock = 0;
   let shake = 0;
+  let staticTimer = 0;
   let lay = null;
   let lastState = null;
   let packets = [];
@@ -243,7 +244,10 @@ export function createRenderer(canvas, dom) {
       burst(p.x, p.y, 24, [C.yellow], 180);
     } else if (e.type === 'eventStart') {
       shake = Math.max(shake, 6);
+      if (e.eventType === 'ddos') staticTimer = Math.max(staticTimer, 0.42);
       if (p) burst(p.x, p.y, 30, [C.yellow, C.magenta], 200);
+    } else if (e.type === 'virusSpread') {
+      staticTimer = Math.max(staticTimer, 0.32);
     } else if (e.type === 'botZapped' && p) {
       burst(p.x, p.y - lay.R, 26, [C.orange, C.yellow], 180);
     } else if (e.type === 'bossArrive' || e.type === 'bossDown') {
@@ -320,6 +324,26 @@ export function createRenderer(canvas, dom) {
       ctx.beginPath();
       ctx.ellipse(W / 2, H * 0.39, radius * 1.35, radius * 0.45, 0, 0, TAU);
       ctx.stroke();
+    }
+
+    // Fine, low-contrast grain keeps the field alive without competing with the network.
+    ctx.fillStyle = 'rgba(184, 255, 222, 0.08)';
+    for (let i = 0; i < 18; i++) {
+      ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+    }
+    if (staticTimer > 0) {
+      const strength = Math.min(1, staticTimer / 0.12);
+      ctx.save();
+      ctx.globalAlpha = 0.2 * strength;
+      for (let i = 0; i < 22; i++) {
+        const colors = ['#baffdf', '#72ffe0', '#c6aaff'];
+        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        ctx.fillRect(Math.random() * W, Math.random() * H, 2 + Math.random() * W * 0.12, 1 + Math.random() * 2);
+      }
+      ctx.globalAlpha = 0.06 * strength;
+      ctx.fillStyle = '#d9fff0';
+      ctx.fillRect(0, Math.random() * H, W, 2);
+      ctx.restore();
     }
   }
 
@@ -1202,6 +1226,7 @@ export function createRenderer(canvas, dom) {
   function draw(state, dt) {
     lastState = state;
     clock += dt;
+    staticTimer = Math.max(0, staticTimer - dt);
     lay = layout(state);
     animateDevices(dt);
     spawn(state, dt);
