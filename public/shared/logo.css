@@ -1,0 +1,69 @@
+/* Router Rumble logo lockup: hacker mask, glitched title, Looka signal bars. Used by the big
+   screen (lobby + top bar) and the phone's join screen. */
+
+.logo-lockup { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+.logo-mask {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 10px rgba(45, 255, 160, .45));
+  animation: mask-flicker 6s infinite;
+}
+@keyframes mask-flicker {
+  0%, 89%, 92%, 100% { opacity: 1; filter: drop-shadow(0 0 10px rgba(45, 255, 160, .45)); }
+  90% { opacity: .55; filter: drop-shadow(0 0 2px rgba(45, 255, 160, .2)); }
+  91% { opacity: 1; filter: drop-shadow(0 0 18px rgba(45, 255, 160, .8)); }
+}
+
+/* Glitch title: two colour-split copies jitter for a split second every few seconds. They start
+   after the cipher reveal has finished decoding the real text. */
+.glitch { position: relative; margin: 0; white-space: nowrap; }
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.glitch::before { color: #ff4fd8; animation: glitch-a 3.4s 1.8s infinite steps(1); }
+.glitch::after { color: #3df2ff; animation: glitch-b 2.9s 1.8s infinite steps(1); }
+@keyframes glitch-a {
+  0%, 88%, 100% { opacity: .55; transform: translate(-2px, 0); clip-path: inset(0 0 62% 0); }
+  90% { opacity: .8; transform: translate(-7px, -1px); clip-path: inset(18% 0 48% 0); }
+  94% { opacity: .8; transform: translate(5px, 1px); clip-path: inset(58% 0 12% 0); }
+}
+@keyframes glitch-b {
+  0%, 86%, 100% { opacity: .55; transform: translate(2px, 0); clip-path: inset(58% 0 0 0); }
+  88% { opacity: .8; transform: translate(6px, 1px); clip-path: inset(30% 0 40% 0); }
+  93% { opacity: .8; transform: translate(-4px, 0); clip-path: inset(5% 0 70% 0); }
+}
+
+/* Looka signal-bar badge, bouncing like a live signal meter. */
+.logo-bars {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 10px;
+  border: 2px solid #6b7cff;
+  border-radius: 7px;
+}
+.logo-bars i {
+  display: block;
+  width: 7px;
+  height: 60%;
+  border-radius: 4px;
+  background: #f47c48;
+  animation: bar-bounce 1.1s ease-in-out infinite alternate;
+}
+.logo-bars i:nth-child(2) { background: #9fd8c8; animation-delay: -.3s; height: 40%; }
+.logo-bars i:nth-child(3) { background: #f47c48; animation-delay: -.7s; height: 75%; }
+.logo-bars i:nth-child(4) { background: #f6b84a; animation-delay: -.15s; height: 85%; }
+.logo-bars i:nth-child(5) { background: #9fd8c8; animation-delay: -.5s; height: 40%; }
+@keyframes bar-bounce { from { transform: scaleY(.55); } to { transform: scaleY(1.1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-mask, .glitch::before, .glitch::after, .logo-bars i { animation: none !important; }
+}

@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Router Rumble</title>
+  <link rel="icon" type="image/svg+xml" href="/shared/mask.svg">
+  <link rel="stylesheet" href="/shared/logo.css">
   <link rel="stylesheet" href="/screen/style.css">
 </head>
 <body data-phase="lobby">
   <div id="app">
     <header id="topbar">
-      <div class="brand">ROUTER<span>RUMBLE</span><small>// netops console</small></div>
+      <div class="brand"><img class="brand-mask" src="/shared/mask.svg" alt="">ROUTER<span>RUMBLE</span><small>// netops console</small></div>
       <div id="demo-flag" class="flag" hidden>DEMO</div>
       <div class="stat"><label>ROOM</label><b id="hud-room">····</b></div>
       <div class="stat"><label>LEVEL</label><b id="hud-level">1</b></div>
@@ -50,8 +52,10 @@
           </section>
         </aside>
       </details>
-      <div id="lobby-title" class="lobby-only">
-        <h1>ROUTER<span>RUMBLE</span></h1>
+      <div id="lobby-title" class="lobby-only logo-lockup">
+        <img class="logo-mask" src="/shared/mask.svg" alt="">
+        <h1 class="glitch" data-text="ROUTER RUMBLE">ROUTER <span>RUMBLE</span></h1>
+        <div class="logo-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <p>Keep the internet alive together, while the internet tries to kill you.</p>
       </div>
       <div id="banner" hidden></div>

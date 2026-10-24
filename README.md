@@ -1,3 +1,5 @@
+<p align="center"><img src="public/shared/logo.svg" width="520" alt="Router Rumble logo: a circuit-trace hacker mask above the title and a signal-bar badge"></p>
+
 # Router Rumble
 
 > Keep the internet alive together, while the internet tries to kill you.
@@ -194,6 +196,11 @@ console.log(s.result, s.health, s.crashes);
 - Levels 3–4 are drafts in `levels.js` (they load and play, but are untuned).
 - Role shuffle (from the brief) is not implemented.
 - Real sound, additional art polish, TTS for the commander.
+
+## Logo
+
+The hacker mask (`public/shared/mask.svg`) is an original design drawn for this game; the
+signal-bar badge comes from the team's Looka logo. `public/shared/logo.svg` is the full lockup.
 
 ## Rules
 

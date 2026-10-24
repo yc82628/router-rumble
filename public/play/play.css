@@ -322,3 +322,10 @@ button:focus-visible, input:focus-visible, .chip-dev:focus-visible { outline: 3p
   @keyframes pop-fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- logo on the join screen */
+.join-logo { margin-bottom: 4px; }
+.join-logo .logo-mask { width: min(260px, 72vw); }
+.join-logo h1 { font-size: clamp(26px, 8vw, 36px); letter-spacing: 4px; line-height: 1.1; color: #bff7e6; }
+.join-logo h1 span { color: var(--cyan); text-shadow: 0 0 16px var(--cyan); }
+.join-logo + .tag { text-align: center; }

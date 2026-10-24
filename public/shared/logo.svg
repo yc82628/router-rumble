@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 380" role="img" aria-label="Router Rumble">
+  <!-- Full logo lockup: original hacker mask, glitched title, and the signal-bar badge. -->
+  <defs>
+    <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="bg" cx=".5" cy=".35" r=".75">
+      <stop offset="0" stop-color="#0e3820"/>
+      <stop offset="1" stop-color="#010b06"/>
+    </radialGradient>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1" fill="#5dffa0" fill-opacity=".05"/>
+    </pattern>
+  </defs>
+  <rect width="640" height="380" rx="22" fill="url(#bg)"/>
+  <rect width="640" height="380" rx="22" fill="url(#scan)"/>
+
+  <g transform="translate(150 18) scale(0.850)">
+  
+  <defs>
+    <filter id="m-glow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="m-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#07301a"/>
+      <stop offset="1" stop-color="#021008"/>
+    </linearGradient>
+    <clipPath id="m-band">
+      <path d="M6 8 L70 20 L150 50 L200 64 L250 50 L330 20 L394 8 L374 50 L354 98 L322 130 L272 146 L230 150 L200 172 L170 150 L128 146 L78 130 L46 98 L26 50 Z"/>
+    </clipPath>
+  </defs>
+
+  
+  <path d="M6 8 L70 20 L150 50 L200 64 L250 50 L330 20 L394 8 L374 50 L354 98 L322 130 L272 146 L230 150 L200 172 L170 150 L128 146 L78 130 L46 98 L26 50 Z"
+        fill="url(#m-face)" stroke="#2dffa0" stroke-width="3.5" stroke-linejoin="miter" filter="url(#m-glow)"/>
+
+  
+  <g clip-path="url(#m-band)" fill="none" stroke="#2dffa0" stroke-width="1.6" stroke-opacity=".55" stroke-linecap="square">
+    <path d="M200 64 V172"/>
+    <path d="M40 34 H92 L112 54"/>
+    <path d="M360 34 H308 L288 54"/>
+    <path d="M58 104 L82 122 H132"/>
+    <path d="M342 104 L318 122 H268"/>
+    <path d="M186 132 V150 L172 160"/>
+    <path d="M214 132 V150 L228 160"/>
+    <path d="M150 58 L170 78 H188"/>
+    <path d="M250 58 L230 78 H212"/>
+  </g>
+  <g fill="#2dffa0">
+    <circle cx="40" cy="34" r="3"/><circle cx="360" cy="34" r="3"/>
+    <circle cx="132" cy="122" r="3"/><circle cx="268" cy="122" r="3"/>
+    <circle cx="188" cy="78" r="2.6"/><circle cx="212" cy="78" r="2.6"/>
+    <circle cx="172" cy="160" r="2.4"/><circle cx="228" cy="160" r="2.4"/>
+  </g>
+
+  
+  <g>
+    <path d="M70 84 L96 66 L156 68 L182 90 L164 110 L104 112 Z" fill="#000" stroke="#2dffa0" stroke-width="2.5"/>
+    <path d="M330 84 L304 66 L244 68 L218 90 L236 110 L296 112 Z" fill="#000" stroke="#2dffa0" stroke-width="2.5"/>
+    <g filter="url(#m-glow)">
+      <rect x="92" y="86" width="74" height="5" rx="2" fill="#3df2ff"/>
+      <rect x="234" y="86" width="74" height="5" rx="2" fill="#3df2ff"/>
+      <rect x="134" y="82" width="14" height="13" rx="2" fill="#e8fff6"/>
+      <rect x="252" y="82" width="14" height="13" rx="2" fill="#e8fff6"/>
+    </g>
+  </g>
+</g>
+
+  <g font-family="'JetBrains Mono','Cascadia Mono',Consolas,monospace" font-weight="800" font-size="52" letter-spacing="6" text-anchor="middle">
+    <text x="317" y="246" fill="#ff4fd8" fill-opacity=".55">ROUTER RUMBLE</text>
+    <text x="323" y="242" fill="#3df2ff" fill-opacity=".55">ROUTER RUMBLE</text>
+    <text x="320" y="244" fill="#bff7e6" filter="url(#glow)">ROUTER <tspan fill="#2dffa0">RUMBLE</tspan></text>
+  </g>
+  <text x="320" y="272" fill="#7aa68e" font-family="'JetBrains Mono',Consolas,monospace" font-size="14" letter-spacing="7" text-anchor="middle">// KEEP THE NETWORK ALIVE</text>
+
+  <!-- signal-bar badge (from the Looka logo) -->
+  <rect x="266" y="292" width="108" height="64" rx="8" fill="none" stroke="#6b7cff" stroke-width="3"/>
+  <g>
+    <rect x="282" y="306" width="12" height="36" rx="6" fill="#f47c48"/>
+    <rect x="300" y="312" width="12" height="24" rx="6" fill="#9fd8c8"/>
+    <rect x="318" y="302" width="12" height="44" rx="6" fill="#f47c48"/>
+    <rect x="336" y="300" width="12" height="48" rx="6" fill="#f6b84a"/>
+    <rect x="354" y="312" width="12" height="24" rx="6" fill="#9fd8c8"/>
+  </g>
+</svg>

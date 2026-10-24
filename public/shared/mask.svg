@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 176" role="img" aria-label="Router Rumble hacker mask">
+  <!-- Original design: an angular "domino" hacker mask made of circuit traces, with visor-slit eyes. -->
+  <defs>
+    <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="3.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#07301a"/>
+      <stop offset="1" stop-color="#021008"/>
+    </linearGradient>
+    <clipPath id="band">
+      <path d="M6 8 L70 20 L150 50 L200 64 L250 50 L330 20 L394 8 L374 50 L354 98 L322 130 L272 146 L230 150 L200 172 L170 150 L128 146 L78 130 L46 98 L26 50 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- mask body -->
+  <path d="M6 8 L70 20 L150 50 L200 64 L250 50 L330 20 L394 8 L374 50 L354 98 L322 130 L272 146 L230 150 L200 172 L170 150 L128 146 L78 130 L46 98 L26 50 Z"
+        fill="url(#face)" stroke="#2dffa0" stroke-width="3.5" stroke-linejoin="miter" filter="url(#glow)"/>
+
+  <!-- circuit traces etched into the mask -->
+  <g clip-path="url(#band)" fill="none" stroke="#2dffa0" stroke-width="1.6" stroke-opacity=".55" stroke-linecap="square">
+    <path d="M200 64 V172"/>
+    <path d="M40 34 H92 L112 54"/>
+    <path d="M360 34 H308 L288 54"/>
+    <path d="M58 104 L82 122 H132"/>
+    <path d="M342 104 L318 122 H268"/>
+    <path d="M186 132 V150 L172 160"/>
+    <path d="M214 132 V150 L228 160"/>
+    <path d="M150 58 L170 78 H188"/>
+    <path d="M250 58 L230 78 H212"/>
+  </g>
+  <g fill="#2dffa0">
+    <circle cx="40" cy="34" r="3"/><circle cx="360" cy="34" r="3"/>
+    <circle cx="132" cy="122" r="3"/><circle cx="268" cy="122" r="3"/>
+    <circle cx="188" cy="78" r="2.6"/><circle cx="212" cy="78" r="2.6"/>
+    <circle cx="172" cy="160" r="2.4"/><circle cx="228" cy="160" r="2.4"/>
+  </g>
+
+  <!-- eye slits: angular visors with a glowing scan line -->
+  <g>
+    <path d="M70 84 L96 66 L156 68 L182 90 L164 110 L104 112 Z" fill="#000" stroke="#2dffa0" stroke-width="2.5"/>
+    <path d="M330 84 L304 66 L244 68 L218 90 L236 110 L296 112 Z" fill="#000" stroke="#2dffa0" stroke-width="2.5"/>
+    <g filter="url(#glow)">
+      <rect x="92" y="86" width="74" height="5" rx="2" fill="#3df2ff"/>
+      <rect x="234" y="86" width="74" height="5" rx="2" fill="#3df2ff"/>
+      <rect x="134" y="82" width="14" height="13" rx="2" fill="#e8fff6"/>
+      <rect x="252" y="82" width="14" height="13" rx="2" fill="#e8fff6"/>
+    </g>
+  </g>
+</svg>

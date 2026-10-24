@@ -529,3 +529,34 @@ button.secondary { width: 100%; margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- logo: mask in the top bar, full lockup over the lobby map */
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand-mask { height: 22px; width: auto; flex: none; filter: drop-shadow(0 0 6px rgba(45, 255, 160, .5)); }
+.brand small { display: none; }
+body[data-phase="lobby"] #lobby-title {
+  display: flex;
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(400px, 62%);
+  padding: 14px 18px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 30%, rgba(14, 56, 32, .92), rgba(1, 11, 6, .94));
+  box-shadow: 0 0 40px rgba(45, 255, 160, .12);
+  pointer-events: none;
+}
+#lobby-title .logo-mask { width: 62%; }
+#lobby-title h1 { font-size: clamp(24px, 2.6vw, 38px); letter-spacing: .14em; color: #bff7e6; }
+#lobby-title h1 span { color: var(--green); text-shadow: 0 0 18px rgba(45, 255, 160, .7); }
+#lobby-title p { margin: 2px 0 0; font-size: 11px; letter-spacing: .12em; color: var(--dim); text-align: center; }
+@media (max-width: 760px) {
+  body[data-phase="lobby"] #lobby-title { width: 86%; top: 8px; }
+}
+@media (max-width: 1100px) {
+  .brand { font-size: 0; } /* not enough room: the mask alone is the brand */
+  .brand-mask { height: 28px; }
+}

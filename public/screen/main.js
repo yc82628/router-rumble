@@ -685,6 +685,7 @@ syncRotateHint();
 document.body.dataset.phase = phase;
 loadHighScores();
 cipherReveal(document.querySelector('.brand'));
+cipherReveal(document.querySelector('#lobby-title h1'), { delay: 200 });
 setInterval(() => phase === PHASES.LOBBY && loadHighScores(), 15000);
 buildPreview();
 renderer.hud(state);
