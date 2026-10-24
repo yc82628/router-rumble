@@ -25,23 +25,25 @@
       <button id="btn-fullscreen" class="icon-btn" title="Full screen (F)" aria-label="Toggle full screen">⛶</button>
     </header>
 
-    <aside id="left">
-      <section class="panel" id="commander">
-        <h2>INCIDENT COMMANDER</h2>
-        <div class="cmdr">
-          <pre id="cmdr-face" aria-hidden="true"></pre>
-          <p id="cmdr-line" aria-live="polite"></p>
-        </div>
-        <p id="ai-status" class="muted small"></p>
-      </section>
-      <section class="panel grow">
-        <h2>INCIDENT LOG</h2>
-        <ol id="log"></ol>
-      </section>
-    </aside>
-
     <main id="map">
       <canvas id="canvas"></canvas>
+      <details id="intel-drawer">
+        <summary>INCIDENT FEED <span>COMMANDER + LOG</span></summary>
+        <aside id="left">
+          <section class="panel" id="commander">
+            <h2>INCIDENT COMMANDER</h2>
+            <div class="cmdr">
+              <pre id="cmdr-face" aria-hidden="true"></pre>
+              <p id="cmdr-line" aria-live="polite"></p>
+            </div>
+            <p id="ai-status" class="muted small"></p>
+          </section>
+          <section class="panel grow">
+            <h2>INCIDENT LOG</h2>
+            <ol id="log"></ol>
+          </section>
+        </aside>
+      </details>
       <div id="lobby-title" class="lobby-only">
         <h1>ROUTER<span>RUMBLE</span></h1>
         <p>Keep the internet alive together, while the internet tries to kill you.</p>
