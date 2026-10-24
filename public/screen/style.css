@@ -453,3 +453,55 @@ button.primary:hover, button.primary:focus-visible { background: var(--bright); 
 .mvp { margin: 4px 0; color: var(--magenta); font-weight: 700; }
 .run { margin: 4px 0; color: var(--bright); }
 .rank { margin: 4px 0 8px; color: var(--green); font-weight: 700; }
+
+/* ---------- top bar: brand + 7 stats + full-screen button */
+#topbar {
+  grid-template-columns:
+    minmax(150px, 1.4fr) minmax(52px, .5fr) minmax(90px, .9fr) minmax(54px, .5fr)
+    minmax(130px, 1.3fr) minmax(62px, .6fr) minmax(50px, .45fr) minmax(50px, .45fr) auto;
+}
+.icon-btn { min-width: 44px; min-height: 40px; }
+
+/* ---------- how to play */
+.rules { margin: 0; padding: 10px 12px 12px 30px; font-size: 12px; line-height: 1.5; color: var(--text); }
+.rules li { margin-bottom: 6px; }
+.rules b { color: var(--bright); }
+button.secondary { width: 100%; margin-top: 8px; }
+
+/* ---------- rotate prompt (big screen opened on a phone in portrait) */
+#rotate-hint {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(1, 11, 6, .96);
+}
+#rotate-hint h2 { margin: 0; color: var(--bright); font-size: 22px; }
+#rotate-hint p { margin: 0; color: var(--text); font-size: 15px; }
+#rotate-hint button { min-height: 48px; width: min(320px, 100%); font-size: 14px; }
+.rotate-icon { font-size: 54px; animation: tilt 1.6s ease-in-out infinite; }
+@keyframes tilt { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+
+/* ---------- phones viewing the big screen: let the page scroll, bigger touch targets */
+@media (max-width: 760px) {
+  html, body { height: auto; overflow: auto; overflow-x: hidden; }
+  #topbar { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .icon-btn { justify-self: end; }
+}
+@media (pointer: coarse) {
+  #canvas { touch-action: pan-y; } /* swipe up/down over the map scrolls the page */
+  button { min-height: 44px; }
+  #intel-drawer summary { min-height: 44px; }
+}
+
+/* ---------- accessibility */
+:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

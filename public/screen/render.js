@@ -1104,6 +1104,7 @@ export function createRenderer(canvas, dom) {
   }
 
   function log(text, kind = 'info', t = 0) {
+    if (!dom.log) return; // the incident log panel is optional (removed from the big screen)
     const li = document.createElement('li');
     li.className = kind;
     li.append(span(`[${fmtTime(t)}]`, 'ts'), ' ', text);

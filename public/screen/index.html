@@ -27,9 +27,19 @@
 
     <main id="map">
       <canvas id="canvas"></canvas>
-      <details id="intel-drawer">
-        <summary>INCIDENT FEED <span>COMMANDER + LOG</span></summary>
+      <details id="intel-drawer" open>
+        <summary>HOW TO PLAY <span>RULES + COMMANDER</span></summary>
         <aside id="left">
+          <section class="panel" id="rules">
+            <h2>HOW TO PLAY</h2>
+            <ol class="rules">
+              <li><b>Goal:</b> keep <b>Network Health</b> above 0% until the timer ends. On level 4, beat the boss.</li>
+              <li>Your phone runs an <b>access point</b>. Keep its load bar out of the red.</li>
+              <li>Too busy? <b>PUSH</b> traffic to a neighbour or <b>MOVE</b> a big device away. <b>BOOST</b> = +50% for 5 s.</li>
+              <li><b>FIX</b> revives crashed APs and zaps bots. When the boss attacks, <b>everyone taps FIX</b>.</li>
+              <li>No crashes = bigger <b>streak</b> = more points. Beat the high score!</li>
+            </ol>
+          </section>
           <section class="panel" id="commander">
             <h2>INCIDENT COMMANDER</h2>
             <div class="cmdr">
@@ -37,10 +47,6 @@
               <p id="cmdr-line" aria-live="polite"></p>
             </div>
             <p id="ai-status" class="muted small"></p>
-          </section>
-          <section class="panel grow">
-            <h2>INCIDENT LOG</h2>
-            <ol id="log"></ol>
           </section>
         </aside>
       </details>
@@ -85,6 +91,7 @@
           <code id="join-url">opening a room…</code>
           <p>Scan, pick a name. Your phone becomes a device on the map.</p>
           <button id="btn-start" class="primary">START SHIFT ▶</button>
+          <button id="btn-new-room" class="secondary" type="button">↻ NEW ROOM CODE</button>
           <p class="muted small">S start · D demo bots · L skip level · K crash · E chaos event · M mute · Esc lobby</p>
         </div>
       </section>
@@ -108,6 +115,14 @@
         </div>
       </section>
     </aside>
+  </div>
+
+  <div id="rotate-hint" role="dialog" aria-modal="true" aria-labelledby="rotate-title" hidden>
+    <div class="rotate-icon" aria-hidden="true">📱↻</div>
+    <h2 id="rotate-title">Turn your phone sideways</h2>
+    <p>The network map fits much better in landscape.</p>
+    <button id="btn-rotate" class="primary" type="button">ROTATE TO LANDSCAPE</button>
+    <button id="btn-rotate-skip" type="button">Keep portrait</button>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

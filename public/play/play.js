@@ -371,14 +371,26 @@ function toggleFullscreen() {
     return;
   }
   const el = document.documentElement;
-  const isFull = document.fullscreenElement || document.webkitFullscreenElement;
-  const p = isFull
+  const p = isFullscreen()
     ? (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)
     : (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el, { navigationUI: 'hide' });
-  Promise.resolve(p)
-    .then(() => !isFull && screen.orientation?.lock?.('portrait').catch(() => {}))
-    .catch(() => toast('Full screen is blocked here. Try rotating, or use your browser menu.'));
+  Promise.resolve(p).catch(() => toast('Full screen is blocked here. Try your browser menu instead.'));
+}
+
+// One button both ways: "⛶ FULL SCREEN" when windowed, "✕ EXIT" when full screen (also updates
+// when the player leaves full screen with the back gesture).
+const isFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+function syncFullscreenButtons() {
+  const full = isFullscreen();
+  for (const b of document.querySelectorAll('.fs-toggle')) {
+    b.textContent = b.classList.contains('fs-big') ? (full ? '✕ EXIT FULL SCREEN' : '⛶ FULL SCREEN') : full ? '✕' : '⛶';
+    b.setAttribute('aria-label', full ? 'Exit full screen' : 'Enter full screen');
+    b.setAttribute('aria-pressed', String(full));
+  }
 }
 for (const b of document.querySelectorAll('.fs-toggle')) b.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', syncFullscreenButtons);
+document.addEventListener('webkitfullscreenchange', syncFullscreenButtons);
+syncFullscreenButtons();
 
 render();

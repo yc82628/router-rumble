@@ -7,7 +7,8 @@
 // scoped to the sender's room by the server.
 
 export const EV = Object.freeze({
-  // screen → server  { roomCode? }   roomCode = reclaim my room after a reload/reconnect.
+  // screen → server  { roomCode? , newRoom? }   roomCode = reclaim my room after a reload/reconnect;
+  //                  newRoom = close my current room and open one with a fresh code.
   //                  ack → { roomCode, joinUrl, qr, maxPlayers, ai, playerIds } | { error }
   SCREEN_HELLO: 'screen:hello',
   // phone → server   { room, name, playerId? }   playerId = rejoin after a reload/reconnect.

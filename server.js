@@ -217,7 +217,12 @@ const playerRoom = (socket) => {
 io.on('connection', (socket) => {
   on(socket, EV.SCREEN_HELLO, async (payload, ack) => {
     const reply = replyFn(ack);
-    let room = rooms.get(cleanCode(payload?.roomCode));
+    if (payload?.newRoom) {
+      // Host asked for a fresh code: close the room this screen hosts; its phones go back to join.
+      const current = screenRoom(socket);
+      if (current) closeRoom(current.code, 'The host opened a new room. Scan the new QR code to rejoin.');
+    }
+    let room = payload?.newRoom ? null : rooms.get(cleanCode(payload?.roomCode));
     // Another live screen already hosts that room (e.g. a second tab): open a fresh room instead.
     if (room?.screenId && room.screenId !== socket.id && io.sockets.sockets.has(room.screenId)) room = null;
     if (!room) {

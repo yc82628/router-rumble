@@ -67,6 +67,8 @@ function aiContext(extra = {}) {
 // ------------------------------------------------------------------ phases
 
 function setPhase(next, extra = {}) {
+  // How to Play is open in the lobby and folds away when a level starts (it covers part of the map).
+  if (next !== phase && (next === PHASES.LOBBY || next === PHASES.COUNTDOWN)) $('intel-drawer').open = next === PHASES.LOBBY;
   phase = next;
   document.body.dataset.phase = next;
   socket.emit(EV.GAME_PHASE, { phase: next, level: levelIndex + 1, levelName: LEVELS[levelIndex].name, ...extra });
@@ -359,8 +361,11 @@ const savedRoom = () => {
   try { return sessionStorage.getItem(ROOM_KEY); } catch { return null; }
 };
 
-socket.on('connect', () => {
-  socket.emit(EV.SCREEN_HELLO, { roomCode: roomCode || savedRoom() }, (res) => {
+socket.on('connect', () => openRoom({ roomCode: roomCode || savedRoom() }));
+
+/** Ask the server for my room (reclaim it) or, with { newRoom: true }, a brand-new code. */
+function openRoom(request) {
+  socket.emit(EV.SCREEN_HELLO, request, (res) => {
     if (!res || res.error) {
       $('join-url').textContent = res?.error || 'Could not open a room. Is the server running?';
       return;
@@ -391,8 +396,16 @@ socket.on('connect', () => {
     setPhase(phase);
     updateRoomCount();
   });
-});
+}
 socket.on('disconnect', () => log('Lost connection to server…', 'bad'));
+
+// "↻ NEW ROOM CODE": close this room (its phones are told to rejoin) and open a fresh one.
+$('btn-new-room').addEventListener('click', () => {
+  if (phase !== PHASES.LOBBY) return;
+  $('room-code').textContent = '····';
+  $('join-url').textContent = 'opening a new room…';
+  openRoom({ newRoom: true });
+});
 
 let maxPlayers = 10;
 function updateRoomCount() {
@@ -573,11 +586,50 @@ function submitRun() {
   );
 }
 
-function toggleFullscreen() {
-  const p = document.fullscreenElement ? document.exitFullscreen?.() : document.documentElement.requestFullscreen?.();
-  p?.catch?.(() => {}); // not allowed here (e.g. inside an iframe): just stay windowed
+// One button: maximise when windowed, exit when full screen. Its icon and label follow the state,
+// including when the player leaves full screen with Esc or the phone's back gesture.
+const isFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+function toggleFullscreen(landscape = false) {
+  const el = document.documentElement;
+  const p = isFullscreen()
+    ? (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)
+    : (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el);
+  Promise.resolve(p)
+    .then(() => landscape && screen.orientation?.lock?.('landscape').catch(() => {}))
+    .catch(() => {}); // not allowed here (e.g. inside an iframe): just stay windowed
 }
-$('btn-fullscreen').addEventListener('click', toggleFullscreen);
+function syncFullscreenButton() {
+  const full = isFullscreen();
+  const btn = $('btn-fullscreen');
+  btn.textContent = full ? '✕' : '⛶';
+  btn.title = full ? 'Exit full screen (F)' : 'Full screen (F)';
+  btn.setAttribute('aria-label', full ? 'Exit full screen' : 'Enter full screen');
+  btn.setAttribute('aria-pressed', String(full));
+}
+$('btn-fullscreen').addEventListener('click', () => toggleFullscreen());
+document.addEventListener('fullscreenchange', syncFullscreenButton);
+document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+syncFullscreenButton();
+
+// Phones opening the big screen in portrait: offer to rotate (Android can lock landscape in full
+// screen; iPhone users just turn the phone). Hidden as soon as the phone is sideways.
+let rotateDismissed = false;
+const portraitPhone = matchMedia('(orientation: portrait) and (max-width: 760px) and (pointer: coarse)');
+function syncRotateHint() {
+  $('rotate-hint').hidden = rotateDismissed || !portraitPhone.matches;
+}
+portraitPhone.addEventListener?.('change', syncRotateHint);
+$('btn-rotate').addEventListener('click', () => {
+  if (isFullscreen()) screen.orientation?.lock?.('landscape').catch(() => {});
+  else toggleFullscreen(true);
+  rotateDismissed = true;
+  syncRotateHint();
+});
+$('btn-rotate-skip').addEventListener('click', () => {
+  rotateDismissed = true;
+  syncRotateHint();
+});
+syncRotateHint();
 
 document.body.dataset.phase = phase;
 loadHighScores();
