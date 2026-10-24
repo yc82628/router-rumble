@@ -17,7 +17,11 @@ let view = null; // latest PlayerState
 let lastStatus = 'ok';
 let hostOnline = true;
 
-const vibrate = (pattern) => { try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } };
+// Browsers only allow vibration after the player has touched the page.
+const vibrate = (pattern) => {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+  try { navigator.vibrate?.(pattern); } catch { /* unsupported */ }
+};
 
 // ------------------------------------------------------------------ join
 
@@ -101,7 +105,67 @@ socket.on(EV.PLAYER_STATE, (s) => {
   view = s;
   if (first) render();
   renderControl();
+  handleFeedback(s);
+  handleUnlocks(s);
 });
+
+// ------------------------------------------------------------------ feedback pop-ups
+// The game sends short messages ("+50 BOT ZAPPED!", "🔥 x3 STREAK!"); each shows once as a
+// floating pop-up, and real achievements buzz the phone so players feel their impact.
+
+let feedbackRun = null;
+let feedbackSeen = 0;
+
+function popup(text, kind = 'small') {
+  const layer = $('pops');
+  const el = document.createElement('div');
+  el.className = `pop ${kind}`;
+  el.textContent = text;
+  if (kind === 'small' || kind === 'local') el.style.setProperty('--dx', `${Math.round((Math.random() - 0.5) * 120)}px`);
+  layer.append(el);
+  while (layer.children.length > 8) layer.firstChild.remove();
+  if (kind !== 'small' && kind !== 'local') $('pop-announce').textContent = text; // screen readers: big moments only
+  el.addEventListener('animationend', () => el.remove());
+}
+
+function handleFeedback(s) {
+  if (s.feedbackRun !== feedbackRun) {
+    feedbackRun = s.feedbackRun; // new level: sequence numbers restart
+    feedbackSeen = 0;
+  }
+  for (const f of s.feedback || []) {
+    if (f.seq <= feedbackSeen) continue;
+    feedbackSeen = f.seq;
+    popup(f.text, f.kind);
+    if (f.kind === 'big') vibrate([30, 40, 70]);
+    else if (f.kind === 'team') vibrate([60, 50, 60, 50, 140]);
+  }
+}
+
+// ------------------------------------------------------------------ control unlocks
+// Level 1 only has PUSH and FIX; BOOST and SEND unlock later with a little celebration.
+
+const ALL_CONTROLS = ['push', 'fix', 'boost', 'send'];
+const UNLOCK_TEXT = {
+  boost: 'NEW: BOOST UNLOCKED! +50% capacity for 5 s',
+  send: 'NEW: SEND UNLOCKED! Tap a device, then SEND it to a neighbour',
+};
+let knownControls = null;
+
+function handleUnlocks(s) {
+  const now = s.controls || ALL_CONTROLS;
+  if (knownControls) {
+    for (const c of now) {
+      if (knownControls.includes(c) || !UNLOCK_TEXT[c]) continue;
+      popup(UNLOCK_TEXT[c], 'unlock');
+      vibrate([40, 60, 40, 60, 120]);
+      const target = c === 'boost' ? $('b-boost') : $('devices');
+      target.classList.add('just-unlocked');
+      setTimeout(() => target.classList.remove('just-unlocked'), 5000);
+    }
+  }
+  knownControls = now;
+}
 
 // ------------------------------------------------------------------ buttons
 
@@ -146,6 +210,7 @@ for (const btn of document.querySelectorAll('.grid button')) {
       select(selected); // cancel
     } else {
       send(action);
+      localFeedback(action);
     }
     vibrate(action === ACTIONS.FIX ? 6 : 12);
     btn.classList.add('pressed');
@@ -160,6 +225,19 @@ for (const btn of document.querySelectorAll('.grid button')) {
     if (e.detail === 0) fire(); // keyboard activation only
   });
 }
+/** Instant confirmation for my own taps (FIX feedback comes from the game, with points). */
+function localFeedback(action) {
+  const s = view;
+  if (!s) return;
+  if (action === ACTIONS.PUSH_LEFT && s.left) popup(`+10% ◀ ${s.left.name}`, 'local');
+  else if (action === ACTIONS.PUSH_RIGHT && s.right) popup(`+10% ▶ ${s.right.name}`, 'local');
+  else if (action === ACTIONS.PULL_BACK) popup('PULLED BACK', 'local');
+  else if (action === ACTIONS.BOOST) {
+    popup('BOOST ON ⚡', 'big');
+    vibrate([20, 30, 60]);
+  }
+}
+
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
@@ -311,7 +389,16 @@ function renderControl() {
   $('c-sl').textContent = s.left ? pct(s.sL) : '—';
   $('c-sr').textContent = s.right ? pct(s.sR) : '—';
 
-  renderDevices(s);
+  // Controls this level hasn't unlocked yet are hidden, not just disabled, to keep it simple.
+  const allow = (c) => !s.controls || s.controls.includes(c);
+  const canSend = allow('send');
+  if (!canSend) selected = null;
+  $('dev-title').hidden = !canSend;
+  $('devices').hidden = !canSend;
+  $('b-boost').hidden = !allow('boost');
+  $('b-pull').classList.toggle('wide', !allow('boost'));
+
+  if (canSend) renderDevices(s);
   const moving = s.devices?.find((d) => d.id === selected);
   for (const b of [$('b-left'), $('b-right'), $('b-pull')]) b.classList.toggle('send', Boolean(moving));
   if (moving) {

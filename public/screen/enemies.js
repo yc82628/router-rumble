@@ -208,7 +208,7 @@ export function runEnemies(state, dt, rand) {
   if (boss && boss.phase === 'attacking') add(boss.routerId, boss.drain);
 }
 
-/** FIX on AP r: zap one bot latched onto it. Returns 'hit', 'kill' or false (no bot there). */
+/** FIX on AP r: zap one bot latched onto it. Returns 'hit', 'kill', 'virus-kill' or false (no bot). */
 export function zapBot(state, r) {
   const b = state.bots.find((x) => x.routerId === r.id && x.state === 'attached');
   if (!b) return false;
@@ -216,8 +216,8 @@ export function zapBot(state, r) {
   b.hit = 1;
   if (b.hp <= 0) {
     state.bots = state.bots.filter((x) => x !== b);
-    state.emitted.push({ type: 'botZapped', routerId: r.id, router: r.name, botId: b.id });
-    return 'kill';
+    state.emitted.push({ type: 'botZapped', routerId: r.id, router: r.name, botId: b.id, virus: b.virus });
+    return b.virus ? 'virus-kill' : 'kill';
   }
   return 'hit';
 }

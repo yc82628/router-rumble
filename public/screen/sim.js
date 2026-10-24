@@ -113,6 +113,9 @@ export function createState({ level, levelIndex = 0, players = [], seed = 1 }) {
     streak: 0, // seconds since the last crash
     mult: 1, // team score multiplier from the streak
     points: {}, // playerId -> personal points
+    feedback: [], // recent phone pop-ups, see notify()
+    feedbackSeq: 0,
+    runId: seed | 0, // lets phones tell one level's pop-ups from the next
     deviceSeq: 0,
     nextSurgeAt: level.surges ? level.surges.first ?? level.surges.every : Infinity,
     nextJoinAt: level.joins ? level.joins.first ?? level.joins.every : Infinity,
@@ -194,7 +197,7 @@ function moveDeviceToNeighbour(state, deviceId, dir, player) {
   const target = state.routers[found.router.index + (dir === 'left' ? -1 : 1)];
   if (target && target.status !== 'crashed') {
     moveDevice(state, deviceId, target.id, player.name);
-    award(state, player, POINTS.move);
+    award(state, player, POINTS.move, `SENT ${found.device.kind.toUpperCase()} → ${target.name}`);
   }
 }
 
@@ -210,6 +213,7 @@ export function tick(state, dt, inputs = []) {
   state.emitted = [];
   if (state.result) return state;
   state.time += dt;
+  state.feedback = state.feedback.filter((f) => state.time - f.t < FEEDBACK_SECONDS);
 
   for (const input of inputs) applyInput(state, input);
   runTutorial(state);
@@ -244,6 +248,7 @@ function applyInput(state, input) {
   }
 
   const player = input.playerId ? state.players.find((p) => p.id === input.playerId) : null;
+  if (player && !controlAllowed(state, input.action)) return; // locked on this level (phones only)
   if (input.action === ACTIONS.MOVE_DEVICE) {
     if (player) moveDeviceToNeighbour(state, input.deviceId, input.dir, player);
     else if (!input.playerId) moveDevice(state, input.deviceId, input.routerId); // screen mouse / bots
@@ -296,33 +301,65 @@ export const POINTS = {
   move: 15, // sending a device to a neighbour
   uptime: 2, // per second while your AP is healthy
 };
-function award(state, player, n) {
-  if (player) state.points[player.id] = (state.points[player.id] || 0) + n;
+/** Add points; with a label, the player's phone also pops up "+50 BOT ZAPPED!". */
+function award(state, player, n, label = null, kind = 'small') {
+  if (!player) return;
+  state.points[player.id] = (state.points[player.id] || 0) + n;
+  if (label !== null) notify(state, player.id, label ? `+${n} ${label}` : `+${n}`, kind);
 }
+
+/**
+ * Short-lived messages for phones (pop-ups + haptics). playerId '*' = everyone.
+ * kind: 'small' (tap feedback), 'big' (a real achievement), 'team' (shared moment).
+ */
+const FEEDBACK_SECONDS = 2.5;
+function notify(state, playerId, text, kind = 'small') {
+  state.feedback.push({ seq: ++state.feedbackSeq, playerId, text, kind, t: state.time });
+}
+
+// Which phone controls each level allows (levels.js `controls`; missing = everything).
+// New players start with PUSH + FIX; BOOST and sending devices unlock later.
+const CONTROL_OF = {
+  [ACTIONS.PUSH_LEFT]: 'push',
+  [ACTIONS.PUSH_RIGHT]: 'push',
+  [ACTIONS.PULL_BACK]: 'push',
+  [ACTIONS.BOOST]: 'boost',
+  [ACTIONS.FIX]: 'fix',
+  [ACTIONS.MOVE_DEVICE]: 'send',
+};
+export const controlAllowed = (state, action) => {
+  const allowed = state.level.controls;
+  const control = CONTROL_OF[action];
+  return !allowed || !control || allowed.includes(control);
+};
 
 /** FIX does the most urgent thing: revive my AP, zap a bot on it, repair a cable, hit the boss. */
 function fix(state, r, player = null) {
   if (r.status === 'crashed') {
     r.crashTimer = Math.max(0, r.crashTimer - TUNING.fixSeconds);
     r.fixPulse = 1;
-    award(state, player, POINTS.revive);
+    award(state, player, POINTS.revive, '');
     return;
   }
   const bot = zapBot(state, r);
   if (bot) {
-    award(state, player, bot === 'kill' ? POINTS.botKill : POINTS.botHit);
+    if (bot === 'hit') award(state, player, POINTS.botHit, '');
+    else award(state, player, POINTS.botKill, bot === 'virus-kill' ? 'VIRUS CONTAINED!' : 'BOT ZAPPED!', 'big');
     return;
   }
   const link = state.links.find((l) => l.cut && (l.a === r.index || l.b === r.index));
   if (!link) {
     const boss = zapBoss(state);
-    if (boss) award(state, player, POINTS.bossHit);
-    if (boss === 'down') for (const p of state.players) award(state, p, POINTS.bossDown);
+    if (boss) award(state, player, POINTS.bossHit, '');
+    if (boss === 'down') {
+      for (const p of state.players) award(state, p, POINTS.bossDown);
+      notify(state, '*', `${state.boss.name} DOWN! +${POINTS.bossDown}`, 'team');
+    }
     return;
   }
   link.fixTaps++;
   if (link.fixTaps >= TUNING.cableFixTaps) {
-    award(state, player, POINTS.cable);
+    award(state, player, POINTS.cable, 'CABLE FIXED!', 'big');
     link.cut = false;
     link.fixTaps = 0;
     state.emitted.push({
@@ -588,7 +625,10 @@ function score(state, dt) {
   // Streak: every 15 s without a crash adds x1 to the team multiplier (max x5). A crash resets it.
   state.streak += dt;
   const mult = Math.min(TUNING.maxMult, 1 + Math.floor(state.streak / TUNING.streakStep));
-  if (mult > state.mult) state.emitted.push({ type: 'streakUp', mult });
+  if (mult > state.mult) {
+    state.emitted.push({ type: 'streakUp', mult });
+    notify(state, '*', `🔥 x${mult} STREAK!`, 'team');
+  }
   state.mult = mult;
   state.score = Math.max(0, state.score + served * dt * state.mult - offline * TUNING.offlinePenalty * dt);
 
@@ -665,6 +705,11 @@ export function playerView(state, playerId) {
     cableTaps: cutLink ? cutLink.fixTaps : 0,
     cableNeeded: TUNING.cableFixTaps,
     points: Math.floor(state.points[playerId] || 0),
+    controls: state.level.controls ?? null, // null = all controls unlocked
+    feedbackRun: state.runId,
+    feedback: state.feedback
+      .filter((f) => f.playerId === playerId || f.playerId === '*')
+      .map(({ seq, text, kind }) => ({ seq, text, kind })),
     rank: leaderboard(state).findIndex((x) => x.id === playerId) + 1,
     teamSize: state.players.length,
     mult: state.mult,

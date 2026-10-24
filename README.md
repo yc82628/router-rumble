@@ -90,6 +90,10 @@ runs fully offline.
 ## How it plays
 
 - Each player owns an AP (with more APs than players, some own two and get a **Switch AP** button).
+- **Controls unlock as you go:** level 1 only has **PUSH** and **FIX**; **BOOST** and **SEND** (moving
+  devices) unlock on level 2 with a pop-up on every phone. Set per level with `controls` in `levels.js`.
+- **Every tap gives feedback:** phones pop up "+50 BOT ZAPPED!", "CABLE FIXED!", "🔥 x3 STREAK!",
+  "+10% ▶ AP-2" and buzz on real achievements.
 - Phone buttons: **Push Left/Right** (+10% of local traffic to that neighbour, sticky, max 50%),
   **Pull Back** (reset to 0%), **Boost** (+50% capacity for 5 s, 20 s cooldown), **Fix** (tap fast
   to revive a crashed AP, or 10 taps to repair a cut cable next to you).
@@ -131,7 +135,9 @@ Phone (/play) ──socket.io──▶ server.js ──socket.io──▶ Screen
   No game logic, so it stays light even with many rooms.
 - **Screen** runs its room's simulation at 10 Hz and renders at 60 fps. Sends all phones'
   private states as one batch 10×/s; the server splits it per phone.
-- **Phone** sends inputs, shows `player:state`, vibrates on crash.
+- **Phone** sends inputs, shows `player:state` (incl. pop-up messages), vibrates on crash and achievements.
+- **Sound**: synthesized effects plus an adaptive soundtrack (`audio.js`) that speeds up and gets
+  busier as health drops, chaos hits or the boss attacks. No audio files. `M` mutes.
 
 ### Files and owners
 
@@ -146,7 +152,8 @@ Phone (/play) ──socket.io──▶ server.js ──socket.io──▶ Screen
 ```
 router-rumble/
 ├── server.js
-├── scripts/loadtest.js         fake screens + phones to stress the server
+├── scripts/loadtest.js         fake screens + phones to stress the server (npm run loadtest)
+├── scripts/balance.js          headless difficulty check for every level (npm test)
 ├── public/shared/protocol.js   event names, actions, phases, PlayerState typedef
 ├── public/screen/
 │   ├── index.html, style.css   compact HUD, network map, incident drawer, operators
@@ -159,7 +166,7 @@ router-rumble/
 │   ├── events.js               chaos events (start/each/end hooks)
 │   ├── render.js               canvas map, packets, sparks, HUD panels
 │   ├── commander.js            line queue, AI requests, canned lines
-│   └── audio.js                synthesized SFX stubs
+│   └── audio.js                synthesized SFX + adaptive music
 └── public/play/
     ├── index.html, play.css
     └── play.js                 join, controls, private AP view
@@ -168,7 +175,10 @@ router-rumble/
 ### Tuning (owner B)
 
 - `TUNING` at the top of `sim.js`: overload/crash timings, boost, health drain, player scaling.
-- `levels.js`: per-level demand, waves, spikes, event schedule, tutorial prompts.
+- `levels.js`: per-level demand, waves, spikes, event schedule, unlocked controls, tutorial prompts.
+- **Run `npm test` after any tuning change.** It plays every level with 2, 6 and 10 players, both
+  with a competent bot team and with an idle team, and fails if good play can't clear a level
+  (under 80% of runs) or if doing nothing earns stars (no free wins).
 - `sim.js` is pure (no DOM, seeded RNG), so you can run it in Node to balance levels:
 
 ```js

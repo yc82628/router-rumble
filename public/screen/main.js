@@ -9,7 +9,7 @@ import {
 } from './sim.js';
 import { createRenderer, fmtTime } from './render.js';
 import { createCommander } from './commander.js';
-import { sfx, unlockAudio, toggleMute } from './audio.js';
+import { sfx, unlockAudio, toggleMute, startMusic, stopMusic, setIntensity } from './audio.js';
 import { cipherReveal } from '../shared/cipher.js';
 
 const $ = (id) => document.getElementById(id);
@@ -107,6 +107,7 @@ function buildPreview() {
 }
 
 function toLobby() {
+  stopMusic();
   levelIndex = 0;
   buildPreview();
   renderer.clearFx();
@@ -151,9 +152,11 @@ function beginPlay() {
   lastChatter = 0;
   setPhase(PHASES.PLAYING);
   sfx.go();
+  startMusic();
 }
 
 function endLevel() {
+  stopMusic();
   const passed = state.result === 'passed';
   const hasNext = levelIndex < LEVELS.length - 1;
   const gameOver = !(passed && hasNext);
@@ -251,7 +254,7 @@ function onSimEvent(e) {
     case 'streakUp':
       renderer.banner(`🔥 x${e.mult} STREAK! No crashes, double down!`, 'tutorial', 2500);
       log(`Streak x${e.mult}`, 'good');
-      sfx.boost();
+      sfx.streak();
       break;
     case 'streakLost':
       log(`Streak x${e.mult} lost`, 'bad');
@@ -283,7 +286,7 @@ function onSimEvent(e) {
       renderer.fx(e);
       renderer.banner(`⚠ ${e.name} ROUND ${e.round}: it's going for ${e.router}! EVERYONE TAP FIX!`, 'event', 6000);
       log(`${e.name} round ${e.round} → ${e.router}`, 'event');
-      sfx.alarm();
+      sfx.bossArrive();
       commander.setMood('alarm');
       commander.react(e.round > 1 ? 'bossReturn' : 'bossArrive', aiContext({ event: e.name, detail: `round ${e.round} of ${e.round + e.lives - 1}` }));
       break;
@@ -294,7 +297,7 @@ function onSimEvent(e) {
       renderer.fx(e);
       renderer.banner(e.livesLeft > 0 ? `${e.name} IS DOWN… for now.` : `${e.name} IS FINISHED!`, 'tutorial', 4000);
       log(`${e.name} knocked down${e.droidRouterIds.length ? `, ${e.droidRouterIds.length} droid(s) fell with it` : ''}`, 'good');
-      sfx.pass();
+      sfx.bossDown();
       commander.setMood('calm');
       if (e.livesLeft > 0) commander.react('bossDown', aiContext({ event: e.name }));
       break;
@@ -348,6 +351,15 @@ function botInputs(s) {
   return out;
 }
 
+/** 0 = calm, 1 = frantic: low health, the boss attacking, chaos events, crashed APs. */
+function musicIntensity(s) {
+  const danger = (100 - s.health) / 80;
+  const boss = s.boss && ['arriving', 'attacking'].includes(s.boss.phase) ? 0.45 : 0;
+  const events = Math.min(0.3, s.activeEvents.length * 0.15);
+  const crashed = s.routers.filter((r) => r.status === 'crashed').length * 0.12;
+  return Math.min(1, 0.1 + danger + boss + events + crashed);
+}
+
 // ------------------------------------------------------------------ loops
 
 setInterval(() => {
@@ -371,6 +383,7 @@ setInterval(() => {
     }
   }
   renderer.hud(state);
+  if (phase === PHASES.PLAYING) setIntensity(musicIntensity(state));
   $('hud-mult').textContent = `x${state.mult}`;
   $('hud-mult').dataset.level = String(state.mult);
   if (state.players.length && roomCode) {

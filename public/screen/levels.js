@@ -10,6 +10,7 @@
 // devices  starting devices per AP: phone | laptop | tv | console | fridge | speaker
 // bots     { first, every, hp, drain }  mini bots that latch onto an AP and eat bandwidth (FIX zaps)
 // boss     the final boss, see enemies.js. Level is won by beating it `lives` times; no timer.
+// controls ['push','fix','boost','send']  phone controls unlocked on this level (missing = all)
 // tutorial { at, text } prompts shown as banners (keep them in time order)
 
 const ALL_EVENTS = ['giantDownload', 'routerReboot', 'ddos', 'cableCut', 'stream4k'];
@@ -36,12 +37,13 @@ export const LEVELS = [
       ['laptop', 'console', 'fridge', 'phone'],
       ['phone', 'speaker', 'laptop'],
     ],
+    controls: ['push', 'fix'], // just two ideas to learn: share the load, fix problems
     tutorial: [
       { at: 1, text: 'Each phone runs one access point. Watch your load bar.' },
       { at: 14, text: 'Overloaded? PUSH traffic to a neighbour, but don\'t melt their AP.' },
-      { at: 26, text: 'Devices grow when they need more traffic. Move a big one to a quieter AP!' },
+      { at: 26, text: 'Devices grow when they need more traffic. Push some of it away!' },
       { at: 34, text: 'A minion is coming. Tap FIX on its AP to zap it.' },
-      { at: 54, text: 'BOOST = +50% capacity for 5 s. FIX also revives a crashed AP.' },
+      { at: 54, text: 'FIX also revives a crashed AP. Tap it fast!' },
     ],
   },
   {
@@ -69,8 +71,10 @@ export const LEVELS = [
       ['laptop', 'speaker', 'phone'],
       ['laptop', 'fridge', 'phone'],
     ],
+    controls: ['push', 'fix', 'boost', 'send'], // everything (later levels add nothing new)
     tutorial: [
-      { at: 2, text: 'Monday. 9am. Video calls in 3, 2, 1…' },
+      { at: 2, text: 'NEW: BOOST (+50% for 5 s) and SEND (tap a device, send it to a neighbour)!' },
+      { at: 10, text: 'Monday. 9am. Video calls in 3, 2, 1…' },
       { at: 18, text: 'Viruses can spread to a neighbour AP. FIX them before they copy!' },
     ],
   },
