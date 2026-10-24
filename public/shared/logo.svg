@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 380" role="img" aria-label="Router Rumble">
-  <!-- Full logo lockup: original hacker mask, glitched title, and the signal-bar badge. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" role="img" aria-label="Router Rumble">
+  <!-- Full logo lockup: original hacker mask and glitched title. -->
   <defs>
     <filter id="glow" x="-20%" y="-40%" width="140%" height="180%">
       <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -13,8 +13,8 @@
       <rect width="4" height="1" fill="#5dffa0" fill-opacity=".05"/>
     </pattern>
   </defs>
-  <rect width="640" height="380" rx="22" fill="url(#bg)"/>
-  <rect width="640" height="380" rx="22" fill="url(#scan)"/>
+  <rect width="640" height="300" rx="22" fill="url(#bg)"/>
+  <rect width="640" height="300" rx="22" fill="url(#scan)"/>
 
   <g transform="translate(150 18) scale(0.850)">
   
@@ -75,13 +75,4 @@
   </g>
   <text x="320" y="272" fill="#7aa68e" font-family="'JetBrains Mono',Consolas,monospace" font-size="14" letter-spacing="7" text-anchor="middle">// KEEP THE NETWORK ALIVE</text>
 
-  <!-- signal-bar badge (from the Looka logo) -->
-  <rect x="266" y="292" width="108" height="64" rx="8" fill="none" stroke="#6b7cff" stroke-width="3"/>
-  <g>
-    <rect x="282" y="306" width="12" height="36" rx="6" fill="#f47c48"/>
-    <rect x="300" y="312" width="12" height="24" rx="6" fill="#9fd8c8"/>
-    <rect x="318" y="302" width="12" height="44" rx="6" fill="#f47c48"/>
-    <rect x="336" y="300" width="12" height="48" rx="6" fill="#f6b84a"/>
-    <rect x="354" y="312" width="12" height="24" rx="6" fill="#9fd8c8"/>
-  </g>
 </svg>

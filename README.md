@@ -1,4 +1,4 @@
-<p align="center"><img src="public/shared/logo.svg" width="520" alt="Router Rumble logo: a circuit-trace hacker mask above the title and a signal-bar badge"></p>
+<p align="center"><img src="public/shared/logo.svg" width="520" alt="Router Rumble logo: a circuit-trace hacker mask above the title"></p>
 
 # Router Rumble
 
@@ -199,8 +199,8 @@ console.log(s.result, s.health, s.crashes);
 
 ## Logo
 
-The hacker mask (`public/shared/mask.svg`) is an original design drawn for this game; the
-signal-bar badge comes from the team's Looka logo. `public/shared/logo.svg` is the full lockup.
+The hacker mask (`public/shared/mask.svg`) is an original design drawn for this game.
+`public/shared/logo.svg` is the full lockup (mask + title).
 
 ## Rules
 
