@@ -272,44 +272,26 @@ export function createRenderer(canvas, dom) {
 
   // ---------------------------------------------------------------- drawing
 
-  function drawWarpedBackgroundImage(image, x, y, width, height, opacity) {
-    if (!image.complete || !image.naturalWidth || !image.naturalHeight) return;
-    const stripH = 6;
-    const sway = Math.sin(clock * 0.78) * Math.min(W * 0.04, 16);
-    const waveSize = Math.max(12, W * 0.045);
-    const detailSize = Math.max(4, W * 0.014);
-    ctx.globalAlpha = opacity;
-    for (let dy = 0; dy < height; dy += stripH) {
-      const dh = Math.min(stripH + 1, height - dy);
-      const wave = Math.sin(dy * TAU / (height * 0.48) + clock * 2.7) * waveSize
-        + Math.sin(dy * TAU / (height * 0.22) - clock * 1.6) * detailSize;
-      const sy = dy / height * image.naturalHeight;
-      const sh = dh / height * image.naturalHeight;
-      ctx.drawImage(
-        image,
-        0, sy, image.naturalWidth, sh,
-        x + sway + wave, y + dy, width, dh
-      );
-    }
-    ctx.globalAlpha = 1;
-  }
-
   function drawBackground() {
     ctx.fillStyle = C.bg;
     ctx.fillRect(-20, -20, W + 40, H + 40);
 
-    // The provided animated static feed and operator silhouette wobble below all gameplay.
+    // Use the supplied glitch texture as a steady background layer; only its static pattern animates.
     if (operatorStatic.complete && operatorStatic.naturalWidth) {
       const scale = Math.max(W / operatorStatic.naturalWidth, H / operatorStatic.naturalHeight);
       const staticW = operatorStatic.naturalWidth * scale;
       const staticH = operatorStatic.naturalHeight * scale;
-      drawWarpedBackgroundImage(operatorStatic, (W - staticW) / 2, (H - staticH) / 2, staticW, staticH, 0.24);
+      ctx.globalAlpha = 0.18;
+      ctx.drawImage(operatorStatic, (W - staticW) / 2, (H - staticH) / 2, staticW, staticH);
+      ctx.globalAlpha = 1;
     }
 
     if (operatorGhost.complete && operatorGhost.naturalWidth) {
       const ghostH = H * 1.18;
       const ghostW = ghostH * operatorGhost.naturalWidth / operatorGhost.naturalHeight;
-      drawWarpedBackgroundImage(operatorGhost, -W * 0.025, -H * 0.18, ghostW, ghostH, 0.34);
+      ctx.globalAlpha = 0.34;
+      ctx.drawImage(operatorGhost, -W * 0.025, -H * 0.18, ghostW, ghostH);
+      ctx.globalAlpha = 1;
     }
 
     const atmosphere = ctx.createRadialGradient(W * 0.5, H * 0.38, H * 0.03, W * 0.5, H * 0.38, W * 0.68);
