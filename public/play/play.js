@@ -196,12 +196,14 @@ function render() {
 
   if (!hostOnline) overlay('HOST OFFLINE', 'The big screen dropped. Hang on, it usually comes right back…', 'bad');
   else if (p === PHASES.COUNTDOWN) overlay('GET READY', levelLabel);
-  else if (p === PHASES.LEVEL_END) overlay('LEVEL CLEARED', 'Nice routing. Look at the big screen for the report.', 'good');
-  else if (p === PHASES.GAME_OVER) {
+  else if (p === PHASES.LEVEL_END) {
+    overlay(`LEVEL CLEARED ${'★'.repeat(phase.stars || 0)}`, `${myScoreLine()}\nNext level: beat your score!`, 'good');
+  } else if (p === PHASES.GAME_OVER) {
+    const won = phase.result === 'passed';
     overlay(
-      phase.result === 'passed' ? 'INTERNET SAVED' : 'NETWORK DOWN',
-      phase.result === 'passed' ? 'You kept everyone online. Legends.' : 'Regroup, talk to your team, and retry.',
-      phase.result === 'passed' ? 'good' : 'bad',
+      won ? 'INTERNET SAVED' : 'NETWORK DOWN',
+      `${myScoreLine()}\n${won ? 'Legends. Check the high-score board!' : 'One more run? Beat the high score!'}`,
+      won ? 'good' : 'bad',
     );
   } else overlay(null);
 }
@@ -333,8 +335,50 @@ function renderControl() {
   sw.textContent = `SWITCH AP (${s.routerSlot}/${s.ownedCount})`;
 
   $('c-health').textContent = `HEALTH ${s.health}%`;
+  $('c-points').textContent = `${(s.points || 0).toLocaleString('en-US')} pts${s.teamSize > 1 ? ` · #${s.rank}` : ''}`;
+  $('c-mult').textContent = s.mult > 1 ? `🔥x${s.mult}` : '';
   const t = Math.max(0, s.timeLeft ?? 0);
   $('c-time').textContent = s.timeLeft == null ? 'BOSS' : `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
+
+/** "You scored 1,240 pts (#2) · MVP: Ana" from the level-end phase payload. */
+function myScoreLine() {
+  const mine = me && phase.points?.[me.playerId];
+  const parts = [];
+  if (mine) parts.push(`You scored ${mine.points.toLocaleString('en-US')} pts (#${mine.rank})`);
+  if (phase.mvp) parts.push(phase.mvp === me?.name ? 'YOU ARE THE MVP! 🏆' : `MVP: ${phase.mvp}`);
+  return parts.join(' · ');
+}
+
+// ------------------------------------------------------------------ full screen
+// Android/desktop: real full screen. iPhone Safari doesn't allow it for web pages, so we explain
+// "Add to Home Screen", which opens the game without browser bars (the page is set up for it).
+
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+document.body.classList.toggle('standalone', standalone);
+const canFullscreen = Boolean(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+
+function toast(text, ms = 5000) {
+  $('toast').textContent = text;
+  $('toast').hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => ($('toast').hidden = true), ms);
+}
+
+function toggleFullscreen() {
+  if (!canFullscreen) {
+    toast('On iPhone: tap Share ⬆ then "Add to Home Screen", and open the game from there for full screen.', 7000);
+    return;
+  }
+  const el = document.documentElement;
+  const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+  const p = isFull
+    ? (document.exitFullscreen || document.webkitExitFullscreen)?.call(document)
+    : (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el, { navigationUI: 'hide' });
+  Promise.resolve(p)
+    .then(() => !isFull && screen.orientation?.lock?.('portrait').catch(() => {}))
+    .catch(() => toast('Full screen is blocked here. Try rotating, or use your browser menu.'));
+}
+for (const b of document.querySelectorAll('.fs-toggle')) b.addEventListener('click', toggleFullscreen);
 
 render();

@@ -32,6 +32,8 @@ export const TUNING = {
   reconnectSeconds: 1, // a moved device is offline this long
   newDeviceGlow: 4, // seconds a freshly joined device is highlighted
   crashPenalty: 500,
+  streakStep: 15, // seconds without a crash per +1 score multiplier
+  maxMult: 5,
   offlinePenalty: 0.5, // score lost per unit of offline demand per second
   healthLossOffline: 22, // health/s when 100% of demand is offline
   healthLossDrop: 10, // health/s when 100% of demand is dropped by overload
@@ -108,6 +110,9 @@ export function createState({ level, levelIndex = 0, players = [], seed = 1 }) {
     eventsFired: 0,
     nextEventAt: level.events ? level.events.first : Infinity,
     tutorialIndex: 0,
+    streak: 0, // seconds since the last crash
+    mult: 1, // team score multiplier from the streak
+    points: {}, // playerId -> personal points
     deviceSeq: 0,
     nextSurgeAt: level.surges ? level.surges.first ?? level.surges.every : Infinity,
     nextJoinAt: level.joins ? level.joins.first ?? level.joins.every : Infinity,
@@ -187,7 +192,10 @@ function moveDeviceToNeighbour(state, deviceId, dir, player) {
   const found = findDevice(state, deviceId);
   if (!found || !player.routerIds.includes(found.router.id)) return;
   const target = state.routers[found.router.index + (dir === 'left' ? -1 : 1)];
-  if (target && target.status !== 'crashed') moveDevice(state, deviceId, target.id, player.name);
+  if (target && target.status !== 'crashed') {
+    moveDevice(state, deviceId, target.id, player.name);
+    award(state, player, POINTS.move);
+  }
 }
 
 export function removePlayer(state, playerId) {
@@ -272,26 +280,49 @@ function applyInput(state, input) {
       }
       break;
     case ACTIONS.FIX:
-      fix(state, r);
+      fix(state, r, player);
       break;
   }
 }
 
+/** Personal points, for the phone's score and the end-of-level MVP. */
+export const POINTS = {
+  revive: 5, // each FIX tap on a crashed AP
+  botHit: 5,
+  botKill: 50,
+  bossHit: 10,
+  bossDown: 150, // to everyone in the room
+  cable: 100, // finishing a cable repair
+  move: 15, // sending a device to a neighbour
+  uptime: 2, // per second while your AP is healthy
+};
+function award(state, player, n) {
+  if (player) state.points[player.id] = (state.points[player.id] || 0) + n;
+}
+
 /** FIX does the most urgent thing: revive my AP, zap a bot on it, repair a cable, hit the boss. */
-function fix(state, r) {
+function fix(state, r, player = null) {
   if (r.status === 'crashed') {
     r.crashTimer = Math.max(0, r.crashTimer - TUNING.fixSeconds);
     r.fixPulse = 1;
+    award(state, player, POINTS.revive);
     return;
   }
-  if (zapBot(state, r)) return;
+  const bot = zapBot(state, r);
+  if (bot) {
+    award(state, player, bot === 'kill' ? POINTS.botKill : POINTS.botHit);
+    return;
+  }
   const link = state.links.find((l) => l.cut && (l.a === r.index || l.b === r.index));
   if (!link) {
-    zapBoss(state);
+    const boss = zapBoss(state);
+    if (boss) award(state, player, POINTS.bossHit);
+    if (boss === 'down') for (const p of state.players) award(state, p, POINTS.bossDown);
     return;
   }
   link.fixTaps++;
   if (link.fixTaps >= TUNING.cableFixTaps) {
+    award(state, player, POINTS.cable);
     link.cut = false;
     link.fixTaps = 0;
     state.emitted.push({
@@ -310,6 +341,9 @@ function crashRouter(state, r) {
   state.crashes++;
   state.score = Math.max(0, state.score - TUNING.crashPenalty);
   state.emitted.push({ type: 'crash', routerId: r.id, name: r.name });
+  if (state.mult > 1) state.emitted.push({ type: 'streakLost', mult: state.mult });
+  state.streak = 0;
+  state.mult = 1;
 }
 
 function pickRandom(state, list) {
@@ -550,7 +584,31 @@ function score(state, dt) {
   const loss = (offline / total) * TUNING.healthLossOffline + (dropped / total) * TUNING.healthLossDrop;
   state.health = clamp(state.health + (loss > 0.001 ? -loss : TUNING.healthRegen) * dt, 0, 100);
   state.delivered += served * dt;
-  state.score = Math.max(0, state.score + served * dt - offline * TUNING.offlinePenalty * dt);
+
+  // Streak: every 15 s without a crash adds x1 to the team multiplier (max x5). A crash resets it.
+  state.streak += dt;
+  const mult = Math.min(TUNING.maxMult, 1 + Math.floor(state.streak / TUNING.streakStep));
+  if (mult > state.mult) state.emitted.push({ type: 'streakUp', mult });
+  state.mult = mult;
+  state.score = Math.max(0, state.score + served * dt * state.mult - offline * TUNING.offlinePenalty * dt);
+
+  for (const p of state.players) {
+    const r = routerById(state, p.activeRouter);
+    if (r && r.status !== 'crashed' && r.overTime <= 0) award(state, p, POINTS.uptime * dt);
+  }
+}
+
+/** 0-3 stars for a finished level. */
+export function starsFor(state) {
+  if (state.result !== 'passed') return 0;
+  return state.health >= 70 ? 3 : state.health >= 35 ? 2 : 1;
+}
+
+/** Players sorted by personal points, best first. */
+export function leaderboard(state) {
+  return state.players
+    .map((p) => ({ id: p.id, name: p.name, points: Math.floor(state.points[p.id] || 0) }))
+    .sort((a, b) => b.points - a.points);
 }
 
 // ------------------------------------------------------------------ views
@@ -598,6 +656,10 @@ export function playerView(state, playerId) {
     fix: r.status === 'crashed' ? 'crash' : botHp ? 'bot' : cutLink ? 'cable' : boss ? 'boss' : null,
     cableTaps: cutLink ? cutLink.fixTaps : 0,
     cableNeeded: TUNING.cableFixTaps,
+    points: Math.floor(state.points[playerId] || 0),
+    rank: leaderboard(state).findIndex((x) => x.id === playerId) + 1,
+    teamSize: state.players.length,
+    mult: state.mult,
     botHp,
     boss: boss && { name: state.boss.name, hp: state.boss.hp, maxHp: state.boss.maxHp, here: state.boss.routerId === r.id },
     event: botHp

@@ -194,3 +194,19 @@ button.primary:hover, button.primary:focus-visible { background: var(--bright); 
 /* ---------- phase visibility */
 body:not([data-phase="lobby"]) .lobby-only { display: none; }
 body[data-phase="lobby"] .play-only { display: none; }
+
+/* ---------- score, streak, high scores */
+#hud-mult[data-level="2"] { color: var(--green); }
+#hud-mult[data-level="3"] { color: var(--yellow); }
+#hud-mult[data-level="4"], #hud-mult[data-level="5"] { color: var(--magenta); text-shadow: 0 0 12px var(--magenta); }
+.icon-btn { padding: 4px 10px; font-size: 20px; line-height: 1; letter-spacing: 0; }
+.highscores { margin: 0; padding: 6px 10px; list-style: none; font-size: 12px; }
+.highscores li { display: flex; gap: 8px; padding: 2px 0; }
+.highscores .hs-team { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.highscores b { margin-left: auto; color: var(--bright); }
+.highscores li.mine { color: var(--magenta); font-weight: 700; }
+.card .highscores { max-height: 9em; overflow-y: auto; margin-bottom: 10px; border: 1px solid var(--line); }
+.stars { font-size: 34px; letter-spacing: 6px; color: var(--yellow); text-shadow: 0 0 16px rgba(255, 210, 61, 0.5); }
+.mvp { margin: 4px 0; color: var(--magenta); font-weight: 700; }
+.run { margin: 4px 0; color: var(--bright); }
+.rank { margin: 4px 0 8px; color: var(--green); font-weight: 700; }

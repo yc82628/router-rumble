@@ -57,7 +57,30 @@ app.get('/api/health', (_req, res) => {
     uptimeS: Math.round(process.uptime()),
   });
 });
+app.get('/api/leaderboard', (_req, res) => res.json({ top: highScores }));
 app.use(express.static(PUBLIC_DIR));
+
+// ---------------------------------------------------------------- high scores
+// In memory: shared by every room, reset when the server restarts (fine for an event).
+const HIGH_SCORES_KEPT = 10;
+const highScores = []; // [{ team, score, level, stars, at }], best first
+
+function submitScore(payload = {}) {
+  const score = Math.floor(Number(payload.score));
+  if (!Number.isFinite(score) || score <= 0 || score > 1e9) return { rank: 0, top: highScores };
+  const names = Array.isArray(payload.players) ? payload.players.map(cleanName).filter(Boolean).slice(0, MAX_PLAYERS_PER_ROOM) : [];
+  const entry = {
+    team: names.length ? names.join(', ') : 'Anonymous ops',
+    score,
+    level: Math.max(1, Math.min(99, Math.floor(Number(payload.level)) || 1)),
+    stars: Math.max(0, Math.min(99, Math.floor(Number(payload.stars)) || 0)),
+    at: Date.now(),
+  };
+  highScores.push(entry);
+  highScores.sort((a, b) => b.score - a.score);
+  highScores.length = Math.min(highScores.length, HIGH_SCORES_KEPT);
+  return { rank: highScores.indexOf(entry) + 1, top: highScores };
+}
 
 /** Non-internal IPv4 addresses, most likely "real Wi-Fi/Ethernet" first. */
 function lanAddresses() {
@@ -296,6 +319,16 @@ io.on('connection', (socket) => {
     if (!room || !Object.values(PHASES).includes(payload.phase)) return;
     room.lastPhase = payload;
     io.to(phonesOf(room.code)).emit(EV.GAME_PHASE, payload);
+  });
+
+  on(socket, EV.SCORE_SUBMIT, (payload, ack) => {
+    const room = screenRoom(socket);
+    if (!room) return replyFn(ack)({ rank: 0, top: highScores });
+    // One submission per finished run; a room can't spam the board.
+    const now = Date.now();
+    if (now - (room.lastScoreAt || 0) < 5000) return replyFn(ack)({ rank: 0, top: highScores });
+    room.lastScoreAt = now;
+    replyFn(ack)(submitScore(payload));
   });
 
   on(socket, EV.AI_REQUEST, async (payload = {}) => {

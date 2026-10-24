@@ -4,7 +4,9 @@
 //   commander  → AI / canned lines
 import { EV, ACTIONS, PHASES } from '../shared/protocol.js';
 import { LEVELS } from './levels.js';
-import { createState, tick, addPlayer, removePlayer, playerView, effectiveCapacity, findDevice, TICK_HZ } from './sim.js';
+import {
+  createState, tick, addPlayer, removePlayer, playerView, effectiveCapacity, findDevice, starsFor, leaderboard, TICK_HZ,
+} from './sim.js';
 import { createRenderer, fmtTime } from './render.js';
 import { createCommander } from './commander.js';
 import { sfx, unlockAudio, toggleMute } from './audio.js';
@@ -85,8 +87,16 @@ function toLobby() {
   setPhase(PHASES.LOBBY);
 }
 
+// A "run" = consecutive levels until game over; its total goes on the high-score board.
+let runScore = 0;
+let runStars = 0;
+
 function startLevel(i) {
   unlockAudio();
+  if (phase === PHASES.LOBBY || phase === PHASES.GAME_OVER) {
+    runScore = 0;
+    runStars = 0;
+  }
   levelIndex = ((i % LEVELS.length) + LEVELS.length) % LEVELS.length;
   const level = LEVELS[levelIndex];
   state = createState({ level, levelIndex, players: rosterList(), seed: Date.now() });
@@ -115,7 +125,24 @@ function beginPlay() {
 function endLevel() {
   const passed = state.result === 'passed';
   const hasNext = levelIndex < LEVELS.length - 1;
-  setPhase(passed && hasNext ? PHASES.LEVEL_END : PHASES.GAME_OVER, { result: state.result });
+  const gameOver = !(passed && hasNext);
+  const stars = starsFor(state);
+  const team = leaderboard(state);
+  const mvp = team[0]?.points > 0 ? team[0] : null;
+  runScore += Math.floor(state.score);
+  runStars += stars;
+  setPhase(gameOver ? PHASES.GAME_OVER : PHASES.LEVEL_END, {
+    result: state.result,
+    stars,
+    mvp: mvp?.name ?? null,
+    points: Object.fromEntries(team.map((p, i) => [p.id, { points: p.points, rank: i + 1 }])),
+  });
+
+  $('end-stars').textContent = passed ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
+  $('end-mvp').textContent = mvp ? `MVP: ${mvp.name} (${mvp.points.toLocaleString('en-US')} pts)` : '';
+  $('end-run').textContent = `Run total: ${runScore.toLocaleString('en-US')} pts`;
+  $('end-rank').textContent = gameOver ? 'Submitting to the high-score board…' : '';
+  if (gameOver) submitRun();
 
   $('end-title').textContent = passed ? (hasNext ? 'LEVEL CLEARED' : 'INTERNET SAVED') : 'NETWORK DOWN';
   $('end-title').className = passed ? 'good' : 'bad';
@@ -189,6 +216,14 @@ function onSimEvent(e) {
       log(`Cable ${e.label} repaired`, 'good');
       sfx.recover();
       commander.react('linkFixed', aiContext());
+      break;
+    case 'streakUp':
+      renderer.banner(`🔥 x${e.mult} STREAK! No crashes, double down!`, 'tutorial', 2500);
+      log(`Streak x${e.mult}`, 'good');
+      sfx.boost();
+      break;
+    case 'streakLost':
+      log(`Streak x${e.mult} lost`, 'bad');
       break;
     case 'tutorial':
       renderer.banner(e.text, 'tutorial', 6000);
@@ -299,6 +334,8 @@ setInterval(() => {
     }
   }
   renderer.hud(state);
+  $('hud-mult').textContent = `x${state.mult}`;
+  $('hud-mult').dataset.level = String(state.mult);
   if (state.players.length && roomCode) {
     socket.emit(EV.PLAYER_STATES, state.players.map((p) => playerView(state, p.id)).filter(Boolean));
   }
@@ -484,13 +521,67 @@ window.addEventListener('keydown', (e) => {
   } else if (k === 'k' && phase === PHASES.PLAYING) inputs.push({ debug: 'crash' });
   else if (k === 'e' && phase === PHASES.PLAYING) inputs.push({ debug: 'event' });
   else if (k === 'm') renderer.banner(toggleMute() ? 'Sound muted' : 'Sound on', 'tutorial', 1500);
+  else if (k === 'f') toggleFullscreen();
   else if (k === 'escape' && grab) releaseGrab();
   else if (k === 'escape' && phase !== PHASES.LOBBY) toLobby();
 });
 
 // ------------------------------------------------------------------ boot
 
+// ------------------------------------------------------------------ high scores + full screen
+
+function renderHighScores(top = [], highlight = 0) {
+  const rows = top.length
+    ? top.map((e, i) => {
+        const li = document.createElement('li');
+        if (i + 1 === highlight) li.className = 'mine';
+        const name = document.createElement('span');
+        name.className = 'hs-team';
+        name.textContent = `${i + 1}. ${e.team}`;
+        const pts = document.createElement('b');
+        pts.textContent = e.score.toLocaleString('en-US');
+        li.append(name, pts);
+        return li;
+      })
+    : [Object.assign(document.createElement('li'), { className: 'muted', textContent: 'No scores yet. Be the first!' })];
+  for (const id of ['highscores', 'end-highscores']) $(id).replaceChildren(...rows.map((r) => r.cloneNode(true)));
+}
+
+async function loadHighScores() {
+  try {
+    renderHighScores((await (await fetch('/api/leaderboard')).json()).top);
+  } catch { /* offline: keep whatever is shown */ }
+}
+
+function submitRun() {
+  socket.timeout(4000).emit(
+    EV.SCORE_SUBMIT,
+    { score: runScore, level: levelIndex + 1, stars: runStars, players: rosterList().map((p) => p.name) },
+    (err, res) => {
+      if (err || !res) {
+        $('end-rank').textContent = 'High-score board unavailable right now.';
+        return;
+      }
+      renderHighScores(res.top, res.rank);
+      $('end-rank').textContent = res.rank === 1
+        ? '🏆 NEW HIGH SCORE! #1 on the server!'
+        : res.rank
+          ? `You placed #${res.rank} on the high-score board!`
+          : `Top 10 needs ${res.top.at(-1)?.score.toLocaleString('en-US') ?? 'more'} pts. Play again?`;
+      if (res.rank === 1) sfx.pass();
+    },
+  );
+}
+
+function toggleFullscreen() {
+  const p = document.fullscreenElement ? document.exitFullscreen?.() : document.documentElement.requestFullscreen?.();
+  p?.catch?.(() => {}); // not allowed here (e.g. inside an iframe): just stay windowed
+}
+$('btn-fullscreen').addEventListener('click', toggleFullscreen);
+
 document.body.dataset.phase = phase;
+loadHighScores();
+setInterval(() => phase === PHASES.LOBBY && loadHighScores(), 15000);
 buildPreview();
 renderer.hud(state);
 commander.react('boot');

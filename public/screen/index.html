@@ -21,6 +21,8 @@
       </div>
       <div class="stat"><label>SCORE</label><b id="hud-score">0</b></div>
       <div class="stat"><label>CRASHES</label><b id="hud-crashes">0</b></div>
+      <div class="stat"><label>STREAK</label><b id="hud-mult" data-level="1">x1</b></div>
+      <button id="btn-fullscreen" class="icon-btn" title="Full screen (F)" aria-label="Toggle full screen">⛶</button>
     </header>
 
     <aside id="left">
@@ -57,6 +59,11 @@
           <h1 id="end-title"></h1>
           <p id="end-sub"></p>
           <dl id="end-stats"></dl>
+          <div id="end-stars" class="stars" aria-label="Stars earned"></div>
+          <p id="end-mvp" class="mvp"></p>
+          <p id="end-run" class="run"></p>
+          <p id="end-rank" class="rank"></p>
+          <ol id="end-highscores" class="highscores"></ol>
           <blockquote id="end-report"></blockquote>
           <div class="actions">
             <button id="btn-next" class="primary">NEXT LEVEL ▶</button>
@@ -78,6 +85,10 @@
           <button id="btn-start" class="primary">START SHIFT ▶</button>
           <p class="muted small">S start · D demo bots · L skip level · K crash · E chaos event · M mute · Esc lobby</p>
         </div>
+      </section>
+      <section class="panel lobby-only">
+        <h2>HIGH SCORES</h2>
+        <ol id="highscores" class="highscores"></ol>
       </section>
       <section class="panel">
         <h2>OPERATORS <span id="op-count"></span></h2>

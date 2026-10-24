@@ -30,6 +30,10 @@ export const EV = Object.freeze({
   ROOM_CLOSED: 'room:closed',
   // screen → server → all phones  { phase, level, levelName?, result? }
   GAME_PHASE: 'game:phase',
+  // screen → server  { score, level, stars, players: [names] }  a finished run (game over)
+  //                  ack → { rank (1-based, 0 = not in top), top: [{ team, score, level, stars }] }
+  //                  GET /api/leaderboard returns the same `top` list.
+  SCORE_SUBMIT: 'score:submit',
   // screen → server  { requestId, context }
   AI_REQUEST: 'ai:request',
   // server → screen  { requestId, text }   text === null → use a canned line

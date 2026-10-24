@@ -29,6 +29,7 @@
     <p id="wait-ap" class="muted"></p>
     <p id="wait-room" class="muted"></p>
     <p class="blink">Waiting for host…</p>
+    <button type="button" class="fs-toggle fs-big">⛶ FULL SCREEN</button>
   </section>
 
   <section id="view-control" class="view" hidden>
@@ -59,7 +60,13 @@
       <button data-action="fix" id="b-fix" class="wide">FIX</button>
       <button data-action="switchRouter" id="b-switch" class="wide" hidden>SWITCH AP</button>
     </div>
-    <footer class="foot"><span id="c-health">HEALTH 100%</span><span id="c-time">1:30</span></footer>
+    <footer class="foot">
+      <span id="c-health">HEALTH 100%</span>
+      <span id="c-points" class="points">0 pts</span>
+      <span id="c-mult" class="mult"></span>
+      <button type="button" class="fs-toggle fs-small" aria-label="Toggle full screen">⛶</button>
+      <span id="c-time">1:30</span>
+    </footer>
   </section>
 
   <div id="phase-overlay" hidden>
@@ -67,6 +74,7 @@
     <div id="phase-sub"></div>
   </div>
   <div id="conn" hidden>reconnecting…</div>
+  <div id="toast" role="status" hidden></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/play/play.js"></script>
