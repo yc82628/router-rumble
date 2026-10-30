@@ -11,6 +11,7 @@
 // bots     { first, every, hp, drain }  mini bots that latch onto an AP and eat bandwidth (FIX zaps)
 // boss     the final boss, see enemies.js. Level is won by beating it `lives` times; no timer.
 // controls ['push','fix','boost','send']  phone controls unlocked on this level (missing = all)
+// orbs     { first, every }  power-up orbs players can grab (powerups.js); missing = none
 // tutorial { at, text } prompts shown as banners (keep them in time order)
 
 const ALL_EVENTS = ['giantDownload', 'routerReboot', 'ddos', 'cableCut', 'stream4k'];
@@ -64,6 +65,7 @@ export const LEVELS = [
     ],
     // First virus wave is a readable warning, then each infected AP can copy it once.
     bots: { first: 26, every: 22, hp: 3, drain: 12, virus: true, spreadAfter: 12, spreadLimit: 1 },
+    orbs: { first: 22, every: 20 }, // power-up orbs (powerups.js)
     events: { first: 35, every: 0, max: 1, pool: ALL_EVENTS },
     devices: [
       ['laptop', 'laptop', 'phone'],
@@ -99,6 +101,7 @@ export const LEVELS = [
     ],
     // Faster, tougher viruses arrive amid more frequent chaos events.
     bots: { first: 12, every: 14, hp: 4, drain: 12, virus: true, spreadAfter: 10, spreadLimit: 1 },
+    orbs: { first: 14, every: 17 },
     events: { first: 15, every: 24, max: 3, pool: ALL_EVENTS },
     devices: [
       ['phone', 'phone', 'laptop'],
@@ -124,6 +127,7 @@ export const LEVELS = [
     spikes: [],
     events: null,
     bots: null, // the boss brings its own droids
+    orbs: { first: 12, every: 15 },
     boss: {
       name: 'OVERSEER',
       first: 5, // seconds before it first arrives

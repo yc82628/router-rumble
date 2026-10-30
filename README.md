@@ -126,6 +126,35 @@ runs fully offline.
   and name on the big screen; colors do not assign gameplay roles.
 - Survive 90 s to clear a level. Health 0% = network down.
 
+## Power-ups, daily challenge and leaderboards
+
+**Power-up orbs** (levels 2–4, `powerups.js`): glowing orbs drift across the big screen *and*
+every phone at once. The first player to tap one on their phone grabs it (+25 pts):
+
+| Orb | Effect |
+|---|---|
+| 📡 HOTSPOT | a temporary Wi-Fi hotspot beside your AP: +40 capacity for 10 s |
+| 🔒 VPN | encrypts your AP for 15 s: bots and viruses can't latch on or spread through it |
+| 🛡 ANTIVIRUS | scans the whole network and wipes every bot, virus and droid |
+| ⚖ LOAD BALANCER | evens out traffic across all APs for 6 s |
+
+**Daily challenge** (`daily.js`): one level + one twist per UTC day, the same for every team
+in the world (the day also fixes the random seed). Twists: Surge Storm, Brownout (no BOOST),
+Viral Day, Crowded Café, Power Hour, Lag Spikes, Boss Rush. Play it from the lobby's
+**▶ DAILY CHALLENGE** button; best scores go on the Daily board.
+
+**Leaderboards**: Today / This week / All-time / Daily, top 10 each, with a team name the host
+types (or rolls with 🎲) in the lobby. Every finished run is stored by `scores.js`:
+
+- **Upstash Redis** (free) when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set:
+  permanent, survives restarts and deploys. **Use this on Render**, whose free tier wipes its disk.
+  Setup: create a free database at [upstash.com](https://upstash.com) → copy the *REST URL* and
+  *REST token* → paste them into the Render service's **Environment** tab.
+- Otherwise `data/scores.json` (git-ignored): fine on your own machine.
+
+The server rejects impossible scores and one submission per room every 5 s, but since any
+browser can be a big screen, the boards aren't cheat-proof. Fine for a party game.
+
 ## Architecture
 
 ```
@@ -154,8 +183,9 @@ Phone (/play) ──socket.io──▶ server.js ──socket.io──▶ Screen
 ```
 router-rumble/
 ├── server.js
+├── scores.js                   leaderboard storage (Upstash Redis or data/scores.json)
 ├── scripts/loadtest.js         fake screens + phones to stress the server (npm run loadtest)
-├── scripts/balance.js          headless difficulty check for every level (npm test)
+├── scripts/balance.js          headless difficulty check for every level + daily twist (npm test)
 ├── public/shared/protocol.js   event names, actions, phases, PlayerState typedef
 ├── public/screen/
 │   ├── index.html, style.css   compact HUD, network map, incident drawer, operators
@@ -165,6 +195,8 @@ router-rumble/
 │   ├── levels.js               level table (data only)
 │   ├── devices.js              device weights + factory (demand lives on devices)
 │   ├── enemies.js              minions, spreading viruses + OVERSEER boss and droids
+│   ├── powerups.js             power-up orbs: HOTSPOT, VPN, ANTIVIRUS, LOAD BALANCER
+│   ├── daily.js                daily challenge: one level + twist + seed per UTC day
 │   ├── events.js               chaos events (start/each/end hooks)
 │   ├── render.js               canvas map, packets, sparks, HUD panels
 │   ├── commander.js            line queue, AI requests, canned lines

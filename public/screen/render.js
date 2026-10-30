@@ -1,6 +1,7 @@
 // Canvas map (uplink, access points, devices, packets, sparks) + DOM HUD panels.
 // Reads sim state, never writes it. Owner C: juice lives here.
 import { effectiveCapacity, TUNING } from './sim.js';
+import { ORB, ORB_TYPES } from './powerups.js';
 
 const TAU = Math.PI * 2;
 const MAX_PACKETS = 700;
@@ -259,6 +260,14 @@ export function createRenderer(canvas, dom) {
       for (const id of e.droidRouterIds || []) {
         const q = lay.routers[lastState.routers.findIndex((r) => r.id === id)];
         if (q) burst(q.x, q.y, 20, [C.red, C.orange], 160);
+      }
+    } else if (e.type === 'orbClaimed') {
+      const color = ORB_TYPES[e.orbType]?.color || C.cyan;
+      shake = Math.max(shake, 5);
+      if (p) burst(p.x, p.y, 40, [color, C.bright], 240);
+      for (const id of e.wiped || []) {
+        const q = lay.routers[lastState.routers.findIndex((r) => r.id === id)];
+        if (q) burst(q.x, q.y - lay.R, 26, [C.green, C.bright], 200);
       }
     } else if (e.type === 'linkFixed') {
       const link = lastState.links.find((l) => l.id === e.linkId);
@@ -1296,6 +1305,126 @@ export function createRenderer(canvas, dom) {
     ctx.fillText(`${boss.name} · ROUND ${boss.round}/${total}`, x, by - 5);
   }
 
+  // ---------------------------------------------------------------- power-ups
+
+  /** Effects of claimed orbs: hotspot node, VPN shield, load-balancer pulse. */
+  function drawPowerups(state) {
+    const { R } = lay;
+    for (const r of state.routers) {
+      const p = lay.routers[r.index];
+      if (!p) continue;
+      if (r.hotspotTimer > 0) {
+        // a little temporary Wi-Fi hotspot docked beside the AP
+        const hx = p.x + R * 1.55;
+        const hy = p.y - R * 0.95;
+        ctx.strokeStyle = rgba(C.cyan, 0.7);
+        ctx.setLineDash([3, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(p.x + R * 0.7, p.y - R * 0.6);
+        ctx.lineTo(hx, hy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#06222b';
+        ctx.strokeStyle = C.cyan;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(hx, hy, R * 0.42, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        drawWifi(hx, hy + R * 0.14, R * 0.3, C.cyan, 3);
+        ctx.strokeStyle = C.bright;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(hx, hy, R * 0.42 + 4, -Math.PI / 2, -Math.PI / 2 + TAU * (r.hotspotTimer / ORB.hotspotSeconds));
+        ctx.stroke();
+      }
+      if (r.vpnTimer > 0) {
+        // encrypted: a purple hex shield around the AP
+        const color = ORB_TYPES.vpn.color;
+        const rr = R + 16 + Math.sin(clock * 4) * 1.5;
+        ctx.strokeStyle = rgba(color, 0.85);
+        ctx.fillStyle = rgba(color, 0.08);
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * TAU + Math.PI / 6;
+          ctx[i ? 'lineTo' : 'moveTo'](p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = `bold 10px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = color;
+        ctx.fillText(`VPN ${Math.ceil(r.vpnTimer)}s`, p.x, p.y + rr + 9);
+      }
+    }
+    if (state.balancerTimer > 0) {
+      const pulse = 0.4 + 0.4 * Math.sin(clock * 10);
+      ctx.strokeStyle = rgba(C.yellow, pulse);
+      ctx.lineWidth = 4;
+      for (const l of state.links) {
+        const a = lay.routers[l.a];
+        const b = lay.routers[l.b];
+        if (!a || !b) continue;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+      ctx.fillStyle = C.yellow;
+      ctx.font = `bold 12px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(`⚖ LOAD BALANCER ${Math.ceil(state.balancerTimer)}s`, W / 2, lay.routers[0].y - R - 44);
+    }
+  }
+
+  /** Orbs drifting over the map, waiting for someone to grab them on their phone. */
+  function drawOrbs(state) {
+    for (const o of state.orbs) {
+      const t = ORB_TYPES[o.type];
+      if (!t) continue;
+      const x = o.x * W;
+      const y = o.y * H;
+      const size = 20 + Math.sin(clock * 5 + o.x * 10) * 2;
+      const fading = o.ttl < 2 ? 0.45 + 0.55 * Math.abs(Math.sin(clock * 12)) : 1;
+      const g = ctx.createRadialGradient(x, y, size * 0.3, x, y, size * 2.4);
+      g.addColorStop(0, rgba(t.color, 0.45 * fading));
+      g.addColorStop(1, rgba(t.color, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 2.4, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = rgba('#02130b', 0.9);
+      ctx.strokeStyle = rgba(t.color, fading);
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      // time left before it fizzles out
+      ctx.strokeStyle = rgba(C.bright, 0.8 * fading);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, size + 5, -Math.PI / 2, -Math.PI / 2 + TAU * (o.ttl / ORB.life));
+      ctx.stroke();
+      ctx.font = `${Math.round(size)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = C.bright;
+      ctx.fillText(t.icon, x, y + 1);
+      ctx.font = `bold 11px ${FONT}`;
+      ctx.fillStyle = rgba(t.color, fading);
+      ctx.fillText(t.label, x, y + size + 16);
+      ctx.font = `9px ${FONT}`;
+      ctx.fillStyle = rgba(C.text, fading);
+      ctx.fillText('TAP IT ON YOUR PHONE', x, y + size + 29);
+    }
+  }
+
   /** Called every animation frame. */
   function draw(state, dt) {
     lastState = state;
@@ -1326,6 +1455,8 @@ export function createRenderer(canvas, dom) {
     }
     drawBots(state);
     drawBoss(state);
+    drawPowerups(state);
+    drawOrbs(state);
     drawSparks(dt);
 
     if (state.tint === 'ddos') {

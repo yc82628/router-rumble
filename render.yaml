@@ -21,3 +21,8 @@ services:
         sync: false
       - key: OPENAI_MODEL
         sync: false
+      # Optional: permanent leaderboards (free Upstash Redis). Set in the Render dashboard.
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

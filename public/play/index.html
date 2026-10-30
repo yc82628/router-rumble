@@ -38,6 +38,7 @@
       <li>Keep your access point's load bar <b>out of the red</b>.</li>
       <li>Too busy? <b>PUSH</b> traffic or <b>SEND</b> a device to a neighbour.</li>
       <li><b>FIX</b> revives crashes and zaps bots. Boss? <b>Everyone FIX!</b></li>
+      <li>See a glowing <b>orb</b>? Tap it first for a power-up!</li>
     </ol>
     <p class="blink" role="status">Waiting for host…</p>
   </section>
@@ -60,6 +61,7 @@
       <span id="c-load-text">0 / 100</span>
       <span id="c-overload"></span>
     </div>
+    <div id="c-powers" class="powers" role="status" hidden></div>
     <div class="shares">
       <div><small id="c-left-label">◀ AP-0</small><b id="c-sl">0%</b></div>
       <div class="right"><small id="c-right-label">AP-2 ▶</small><b id="c-sr">0%</b></div>
@@ -88,6 +90,7 @@
   </div>
   <div id="conn" hidden>reconnecting…</div>
   <div id="toast" role="status" hidden></div>
+  <div id="orbs" aria-label="Power-up orbs"></div>
   <div id="pops" aria-hidden="true"></div>
   <div id="pop-announce" class="sr-only" role="status" aria-live="polite"></div>
 

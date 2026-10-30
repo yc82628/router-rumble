@@ -560,3 +560,42 @@ body[data-phase="lobby"] #lobby-title {
   .brand { font-size: 0; } /* not enough room: the mask alone is the brand */
   .brand-mask { height: 28px; }
 }
+
+/* ---------- team name, daily challenge, leaderboard tabs */
+.team-label { display: block; margin: 10px 0 4px; font-size: 10px; letter-spacing: .16em; color: var(--dim); }
+.team-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.team-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bright);
+  background: rgba(1, 11, 6, .8);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.team-row input:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+.daily-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  letter-spacing: .04em;
+  border-color: var(--yellow);
+  background: rgba(255, 212, 77, .08);
+  color: var(--yellow);
+}
+.daily-btn:hover, .daily-btn:focus-visible { background: rgba(255, 212, 77, .18); box-shadow: 0 0 18px rgba(255, 212, 77, .2); }
+.daily-tag { font-size: 10px; letter-spacing: .16em; }
+#daily-name { font-size: 15px; color: var(--bright); }
+#daily-desc { font-size: 11px; font-weight: 400; color: var(--text); line-height: 1.35; }
+.board-tabs { display: flex; gap: 4px; padding: 8px 10px 0; }
+.board-tabs button { flex: 1; padding: 6px 0; font-size: 10px; letter-spacing: .08em; min-height: 0; }
+.board-tabs button[aria-selected="true"] { background: var(--green); color: #032014; }
+.board-title { margin: 6px 0 4px; font-size: 11px; letter-spacing: .16em; color: var(--green); }

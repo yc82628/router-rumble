@@ -14,6 +14,7 @@ import { ACTIONS } from '../shared/protocol.js';
 import { EVENT_DEFS, EVENT_TYPES } from './events.js';
 import { makeCluster, makeDevice, DEVICE_WEIGHT } from './devices.js';
 import { createBoss, runEnemies, zapBot, zapBoss, bossActive } from './enemies.js';
+import { runOrbs, claimOrb, balanceLoads, ORB, ORB_TYPES } from './powerups.js';
 
 export const TICK_HZ = 10;
 
@@ -54,7 +55,8 @@ export function random(state) {
 }
 
 export const routerById = (state, id) => state.routers.find((r) => r.id === id);
-export const effectiveCapacity = (r) => r.capacity * (r.boostTimer > 0 ? TUNING.boostMul : 1);
+export const effectiveCapacity = (r) =>
+  r.capacity * (r.boostTimer > 0 ? TUNING.boostMul : 1) + (r.hotspotTimer > 0 ? ORB.hotspotCapacity : 0);
 const playerDeviceCount = (r) => r.devices.reduce((n, d) => n + (d.kind === 'player' ? 1 : 0), 0);
 
 // ------------------------------------------------------------------ setup
@@ -86,6 +88,8 @@ export function createState({ level, levelIndex = 0, players = [], seed = 1 }) {
     fixPulse: 0,
     eventMul: 1,
     botLoad: 0, // bandwidth eaten by bots / the boss (enemies.js)
+    hotspotTimer: 0, // power-ups (powerups.js)
+    vpnTimer: 0,
     ownerIds: [],
   }));
   const links = routers.slice(1).map((_, i) => ({ id: `l${i}`, a: i, b: i + 1, cut: false, fixTaps: 0, flowAB: 0, flowBA: 0 }));
@@ -123,6 +127,10 @@ export function createState({ level, levelIndex = 0, players = [], seed = 1 }) {
     botSeq: 0,
     nextBotAt: level.bots ? level.bots.first : Infinity,
     boss: createBoss(level.boss),
+    orbs: [], // power-up orbs drifting on the map (powerups.js)
+    orbSeq: 0,
+    nextOrbAt: level.orbs ? level.orbs.first : Infinity,
+    balancerTimer: 0,
     joinsFired: 0,
     result: null,
     seed: seed | 0,
@@ -220,6 +228,7 @@ export function tick(state, dt, inputs = []) {
   runEvents(state, dt);
   runDevices(state, dt);
   runEnemies(state, dt, () => random(state));
+  runOrbs(state, dt, () => random(state));
   runTimers(state, dt);
   computeDemand(state);
   computeLoads(state);
@@ -252,6 +261,15 @@ function applyInput(state, input) {
   if (input.action === ACTIONS.MOVE_DEVICE) {
     if (player) moveDeviceToNeighbour(state, input.deviceId, input.dir, player);
     else if (!input.playerId) moveDevice(state, input.deviceId, input.routerId); // screen mouse / bots
+    return;
+  }
+  if (input.action === ACTIONS.CLAIM_ORB) {
+    const claimed = player && claimOrb(state, player, input.orbId, routerById(state, player.activeRouter));
+    if (claimed) {
+      const t = ORB_TYPES[claimed.type];
+      award(state, player, ORB.claimPoints, `${t.icon} ${t.label}!`, 'big');
+      notify(state, '*', `${player.name} grabbed ${t.label} ${t.icon}`, 'team');
+    }
     return;
   }
   if (input.action === ACTIONS.SWITCH_ROUTER) {
@@ -587,6 +605,7 @@ function computeLoads(state) {
     l.flowBA = R[l.b].outL;
   }
   for (const r of R) r.load = r.status === 'crashed' ? 0 : r.local + r.forwardedIn + r.botLoad;
+  balanceLoads(state, effectiveCapacity); // LOAD BALANCER power-up
 }
 
 function resolveOverload(state, dt) {
@@ -697,6 +716,8 @@ export function playerView(state, playerId) {
     status: r.status,
     boostReadyIn: round1(r.boostCooldown),
     boostLeft: round1(r.boostTimer),
+    hotspotLeft: round1(r.hotspotTimer),
+    vpnLeft: round1(r.vpnTimer),
     crashLeft: round1(r.crashTimer),
     overload: clamp(r.overTime / TUNING.overloadSeconds, 0, 1),
     left: side(leftR, linkL),
@@ -706,6 +727,7 @@ export function playerView(state, playerId) {
     cableNeeded: TUNING.cableFixTaps,
     points: Math.floor(state.points[playerId] || 0),
     controls: state.level.controls ?? null, // null = all controls unlocked
+    orbs: state.orbs.map((o) => ({ id: o.id, type: o.type, ttl: round1(o.ttl) })),
     feedbackRun: state.runId,
     feedback: state.feedback
       .filter((f) => f.playerId === playerId || f.playerId === '*')

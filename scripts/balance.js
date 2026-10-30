@@ -1,18 +1,21 @@
 // Balance check: plays every level headlessly with an idle team and a competent bot team.
 //
-//   npm test                    # all levels, 2/6/10 players, 5 seeds each
+//   npm test                    # all levels (2/6/10 players) + every daily-challenge twist (2/6)
 //   node scripts/balance.js 3   # only level 3
 //
 // Rules (fail the run if broken):
-//   - a team that plays well must clear the level in at least 80% of runs
+//   - a team that plays well must clear a level in at least 80% of runs (daily twists: 60%,
+//     they're meant to be harder)
 //   - a team that does nothing must not average more than 1.5 stars (no free wins)
-// The bot only uses controls the level unlocks, like a real player.
+// The bot only uses controls the level unlocks and grabs power-up orbs, like a real team.
 import { createState, tick, effectiveCapacity, starsFor } from '../public/screen/sim.js';
 import { LEVELS } from '../public/screen/levels.js';
+import { dailyChallenge, DAILY_MODIFIERS } from '../public/screen/daily.js';
 
 const SEEDS = [1, 2, 3, 4, 5];
 const TEAM_SIZES = [2, 6, 10];
 const MIN_PLAY_PASS_RATE = 0.8;
+const MIN_DAILY_PASS_RATE = 0.6;
 const MAX_IDLE_AVG_STARS = 1.5;
 
 const onlyLevel = Number(process.argv[2]) || null;
@@ -22,6 +25,7 @@ const ratio = (r) => (r.status === 'crashed' ? 9 : r.load / effectiveCapacity(r)
 function botInputs(s, teamSize) {
   const can = (c) => !s.level.controls || s.level.controls.includes(c);
   const out = [];
+  for (const o of s.orbs) out.push({ playerId: 'p0', action: 'claimOrb', orbId: o.id }); // grab every orb
   const bossOn = s.boss && ['arriving', 'attacking'].includes(s.boss.phase);
   for (const r of s.routers) {
     const act = (action) => out.push({ routerId: r.id, action });
@@ -49,28 +53,39 @@ function botInputs(s, teamSize) {
   return out;
 }
 
-function run(levelIndex, teamSize, seed, playing) {
+function run(level, teamSize, seed, playing) {
   const players = Array.from({ length: teamSize }, (_, i) => ({ playerId: `p${i}`, name: `P${i}`, color: '#58e6ff', colorName: 'CYAN' }));
-  const s = createState({ level: LEVELS[levelIndex], levelIndex, players, seed });
+  const s = createState({ level, levelIndex: 0, players, seed });
   for (let n = 0; !s.result && s.time < 400; n++) tick(s, 0.1, playing && n % 4 === 0 ? botInputs(s, teamSize) : []);
   return { passed: s.result === 'passed', stars: starsFor(s), health: Math.round(s.health), crashes: s.crashes };
 }
 
 let problems = 0;
+function check(label, level, size, seeds, minPass) {
+  const play = seeds.map((seed) => run(level, size, seed, true));
+  const idle = seeds.map((seed) => run(level, size, seed, false));
+  const passRate = play.filter((r) => r.passed).length / play.length;
+  const idleStars = idle.reduce((n, r) => n + r.stars, 0) / idle.length;
+  const ok = passRate >= minPass && idleStars <= MAX_IDLE_AVG_STARS;
+  if (!ok) problems++;
+  console.log(
+    `${ok ? 'ok  ' : 'FAIL'} ${label.padEnd(26)} ${String(size).padStart(2)} players | ` +
+    `play: ${Math.round(passRate * 100)}% cleared (${play.map((r) => `${r.stars}★`).join(' ')}) | ` +
+    `idle: ${idleStars.toFixed(1)}★ avg (${idle.map((r) => (r.passed ? `${r.health}%` : 'lost')).join(' ')})`,
+  );
+}
+
 for (const [i, level] of LEVELS.entries()) {
   if (onlyLevel && onlyLevel !== i + 1) continue;
-  for (const size of TEAM_SIZES) {
-    const play = SEEDS.map((seed) => run(i, size, seed, true));
-    const idle = SEEDS.map((seed) => run(i, size, seed, false));
-    const passRate = play.filter((r) => r.passed).length / play.length;
-    const idleStars = idle.reduce((n, r) => n + r.stars, 0) / idle.length;
-    const ok = passRate >= MIN_PLAY_PASS_RATE && idleStars <= MAX_IDLE_AVG_STARS;
-    if (!ok) problems++;
-    console.log(
-      `${ok ? 'ok  ' : 'FAIL'} L${i + 1} ${level.name.padEnd(13)} ${String(size).padStart(2)} players | ` +
-      `play: ${Math.round(passRate * 100)}% cleared (${play.map((r) => `${r.stars}★`).join(' ')}) | ` +
-      `idle: ${idleStars.toFixed(1)}★ avg (${idle.map((r) => (r.passed ? `${r.health}%` : 'lost')).join(' ')})`,
-    );
+  for (const size of TEAM_SIZES) check(`L${i + 1} ${level.name}`, level, size, SEEDS, MIN_PLAY_PASS_RATE);
+}
+if (!onlyLevel) {
+  // Every daily twist, on both base levels it can land on (a daily's seed is fixed per day; vary it here).
+  for (const mod of DAILY_MODIFIERS) {
+    for (const base of mod.levelIndex != null ? [mod.levelIndex] : [1, 2]) {
+      const daily = dailyChallenge('2026-01-01', { ...mod, levelIndex: base });
+      for (const size of [2, 6]) check(`Daily ${mod.name} (L${base + 1})`, daily.level, size, SEEDS, MIN_DAILY_PASS_RATE);
+    }
   }
 }
 console.log(problems ? `\n${problems} balance problem(s).` : '\nBalance OK.');

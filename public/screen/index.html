@@ -39,6 +39,7 @@
               <li>Your phone runs an <b>access point</b>. Keep its load bar out of the red.</li>
               <li>Too busy? <b>PUSH</b> traffic to a neighbour or <b>MOVE</b> a big device away. <b>BOOST</b> = +50% for 5 s.</li>
               <li><b>FIX</b> revives crashed APs and zaps bots. When the boss attacks, <b>everyone taps FIX</b>.</li>
+              <li>Glowing <b>orbs</b> float by: the first phone to tap one gets a power-up (HOTSPOT, VPN, ANTIVIRUS, LOAD BALANCER).</li>
               <li>No crashes = bigger <b>streak</b> = more points. Beat the high score!</li>
             </ol>
           </section>
@@ -74,7 +75,10 @@
           <p id="end-mvp" class="mvp"></p>
           <p id="end-run" class="run"></p>
           <p id="end-rank" class="rank"></p>
-          <ol id="end-highscores" class="highscores"></ol>
+          <div id="end-board" hidden>
+            <h3 id="end-board-title" class="board-title">TODAY'S TOP 10</h3>
+            <ol id="end-highscores" class="highscores"></ol>
+          </div>
           <blockquote id="end-report"></blockquote>
           <div class="actions">
             <button id="btn-next" class="primary">NEXT LEVEL ▶</button>
@@ -93,7 +97,17 @@
           <img id="qr-big" alt="QR code to join the game">
           <code id="join-url">opening a room…</code>
           <p>Scan, pick a name. Your phone becomes a device on the map.</p>
+          <label class="team-label" for="team-name">TEAM NAME</label>
+          <div class="team-row">
+            <input id="team-name" maxlength="24" autocomplete="off" spellcheck="false">
+            <button id="btn-team-roll" type="button" class="icon-btn" title="Random team name" aria-label="Pick a random team name">🎲</button>
+          </div>
           <button id="btn-start" class="primary">START SHIFT ▶</button>
+          <button id="btn-daily" class="daily-btn" type="button">
+            <span class="daily-tag">▶ DAILY CHALLENGE</span>
+            <b id="daily-name">…</b>
+            <span id="daily-desc"></span>
+          </button>
           <button id="btn-new-room" class="secondary" type="button">↻ NEW ROOM CODE</button>
           <p class="muted small">S start · D demo bots · L skip level · K crash · E chaos event · M mute · Esc lobby</p>
         </div>
@@ -111,8 +125,14 @@
         </div>
       </section>
       <section class="panel lobby-only">
-        <h2>HIGH SCORES</h2>
-        <ol id="highscores" class="highscores"></ol>
+        <h2>LEADERBOARD</h2>
+        <div class="board-tabs" role="tablist" aria-label="Leaderboard">
+          <button type="button" role="tab" data-board="today" aria-selected="true">TODAY</button>
+          <button type="button" role="tab" data-board="week" aria-selected="false">WEEK</button>
+          <button type="button" role="tab" data-board="all" aria-selected="false">ALL</button>
+          <button type="button" role="tab" data-board="daily" aria-selected="false">DAILY</button>
+        </div>
+        <ol id="highscores" class="highscores" aria-live="polite"></ol>
       </section>
       <section class="panel">
         <h2>OPERATORS <span id="op-count"></span></h2>

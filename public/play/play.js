@@ -2,6 +2,7 @@
 // Owner A. The phone never simulates anything; it only sends inputs and shows player:state.
 import { EV, ACTIONS, PHASES } from '../shared/protocol.js';
 import { cipherReveal } from '../shared/cipher.js';
+import { ORB_TYPES } from '../screen/powerups.js';
 
 const $ = (id) => document.getElementById(id);
 const socket = window.io();
@@ -107,6 +108,7 @@ socket.on(EV.PLAYER_STATE, (s) => {
   renderControl();
   handleFeedback(s);
   handleUnlocks(s);
+  renderOrbs(s);
 });
 
 // ------------------------------------------------------------------ feedback pop-ups
@@ -273,6 +275,7 @@ function render() {
     show('view-control');
   }
 
+  if (p !== PHASES.PLAYING) clearOrbs();
   if (!hostOnline) overlay('HOST OFFLINE', 'The big screen dropped. Hang on, it usually comes right back…', 'bad');
   else if (p === PHASES.COUNTDOWN) overlay('GET READY', levelLabel);
   else if (p === PHASES.LEVEL_END) {
@@ -440,6 +443,12 @@ function renderControl() {
   $('c-health').textContent = `HEALTH ${s.health}%`;
   $('c-points').textContent = `${(s.points || 0).toLocaleString('en-US')} pts${s.teamSize > 1 ? ` · #${s.rank}` : ''}`;
   $('c-mult').textContent = s.mult > 1 ? `🔥x${s.mult}` : '';
+  const powers = [
+    s.hotspotLeft > 0 && `📡 HOTSPOT ${Math.ceil(s.hotspotLeft)}s`,
+    s.vpnLeft > 0 && `🔒 VPN ${Math.ceil(s.vpnLeft)}s`,
+  ].filter(Boolean);
+  $('c-powers').hidden = !powers.length;
+  $('c-powers').textContent = powers.join(' · ');
   const t = Math.max(0, s.timeLeft ?? 0);
   $('c-time').textContent = s.timeLeft == null ? 'BOSS' : `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
@@ -497,4 +506,60 @@ document.addEventListener('webkitfullscreenchange', syncFullscreenButtons);
 syncFullscreenButtons();
 
 cipherReveal(document.querySelector('#view-join h1'));
+// ------------------------------------------------------------------ power-up orbs
+// Orbs drift across every phone at once; the first player to tap one grabs it, and it fires on
+// their AP (HOTSPOT, VPN) or on the whole network (ANTIVIRUS, LOAD BALANCER).
+
+const orbEls = new Map(); // orbId -> button
+
+function clearOrbs() {
+  for (const el of orbEls.values()) el.remove();
+  orbEls.clear();
+}
+
+function renderOrbs(s) {
+  const live = new Set((s.orbs || []).map((o) => o.id));
+  for (const [id, el] of orbEls) {
+    if (live.has(id)) continue;
+    el.classList.add('gone'); // claimed by someone or expired
+    setTimeout(() => el.remove(), 300);
+    orbEls.delete(id);
+  }
+  if (phase.phase !== PHASES.PLAYING) return;
+  for (const o of s.orbs || []) {
+    if (orbEls.has(o.id)) continue;
+    const t = ORB_TYPES[o.type];
+    if (!t) continue;
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'orb';
+    el.setAttribute('aria-label', `Grab ${t.label}: ${t.desc}`);
+    el.style.setProperty('--orb', t.color);
+    // a random drift path across the middle of the screen
+    const rnd = (a, b) => `${Math.round(a + Math.random() * (b - a))}%`;
+    el.style.setProperty('--x0', rnd(8, 70));
+    el.style.setProperty('--y0', rnd(18, 62));
+    el.style.setProperty('--x1', rnd(8, 70));
+    el.style.setProperty('--y1', rnd(18, 62));
+    const icon = document.createElement('span');
+    icon.className = 'orb-icon';
+    icon.textContent = t.icon;
+    const label = document.createElement('span');
+    label.className = 'orb-label';
+    label.textContent = t.label;
+    el.append(icon, label);
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      socket.emit(EV.PLAYER_INPUT, { action: ACTIONS.CLAIM_ORB, orbId: o.id });
+      el.classList.add('grabbed');
+      vibrate(20);
+    });
+    el.addEventListener('click', (e) => {
+      if (e.detail === 0) socket.emit(EV.PLAYER_INPUT, { action: ACTIONS.CLAIM_ORB, orbId: o.id }); // keyboard
+    });
+    $('orbs').append(el);
+    orbEls.set(o.id, el);
+  }
+}
+
 render();

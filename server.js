@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import QRCode from 'qrcode';
 import { EV, ACTIONS, ACTION_LIST, PHASES } from './public/shared/protocol.js';
+import { createScoreStore, board, BOARDS, utcDay } from './scores.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -57,29 +58,50 @@ app.get('/api/health', (_req, res) => {
     uptimeS: Math.round(process.uptime()),
   });
 });
-app.get('/api/leaderboard', (_req, res) => res.json({ top: highScores }));
+app.get('/api/leaderboard', async (req, res) => {
+  const name = BOARDS.includes(req.query.board) ? req.query.board : 'today';
+  try {
+    res.json({ board: name, top: board(await scores.all(), name), day: utcDay() });
+  } catch (err) {
+    console.error('[scores] read failed', err.message);
+    res.status(503).json({ board: name, top: [], error: 'Leaderboard unavailable' });
+  }
+});
 app.use(express.static(PUBLIC_DIR));
 
-// ---------------------------------------------------------------- high scores
-// In memory: shared by every room, reset when the server restarts (fine for an event).
-const HIGH_SCORES_KEPT = 10;
-const highScores = []; // [{ team, score, level, stars, at }], best first
+// ---------------------------------------------------------------- leaderboards
+// Every finished run is stored (see scores.js); boards are Today / This week / All-time / Daily.
+const scores = createScoreStore({
+  file: path.join(__dirname, 'data', 'scores.json'),
+  url: (process.env.UPSTASH_REDIS_REST_URL || '').trim(),
+  token: (process.env.UPSTASH_REDIS_REST_TOKEN || '').trim(),
+});
+const MAX_RUN_SCORE = 1e7; // well above anything a real 4-level run can reach
 
-function submitScore(payload = {}) {
+const cleanTeam = (raw) => String(raw ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+
+async function submitScore(payload = {}) {
+  const mode = payload.mode === 'daily' ? 'daily' : 'normal';
+  const boardName = mode === 'daily' ? 'daily' : 'today';
   const score = Math.floor(Number(payload.score));
-  if (!Number.isFinite(score) || score <= 0 || score > 1e9) return { rank: 0, top: highScores };
+  if (!Number.isFinite(score) || score <= 0 || score > MAX_RUN_SCORE) {
+    return { rank: 0, board: boardName, top: board(await scores.all(), boardName) };
+  }
   const names = Array.isArray(payload.players) ? payload.players.map(cleanName).filter(Boolean).slice(0, MAX_PLAYERS_PER_ROOM) : [];
   const entry = {
-    team: names.length ? names.join(', ') : 'Anonymous ops',
+    team: cleanTeam(payload.team) || (names.length ? names.join(', ').slice(0, 40) : 'Anonymous ops'),
+    players: names,
     score,
     level: Math.max(1, Math.min(99, Math.floor(Number(payload.level)) || 1)),
     stars: Math.max(0, Math.min(99, Math.floor(Number(payload.stars)) || 0)),
+    mode,
+    day: utcDay(), // the server's date decides which day a daily run counts for
     at: Date.now(),
   };
-  highScores.push(entry);
-  highScores.sort((a, b) => b.score - a.score);
-  highScores.length = Math.min(highScores.length, HIGH_SCORES_KEPT);
-  return { rank: highScores.indexOf(entry) + 1, top: highScores };
+  await scores.add(entry);
+  const top = board(await scores.all(), boardName);
+  const rank = top.findIndex((e) => e.at === entry.at && e.team === entry.team && e.score === entry.score) + 1;
+  return { rank, board: boardName, top };
 }
 
 /** Non-internal IPv4 addresses, most likely "real Wi-Fi/Ethernet" first. */
@@ -307,6 +329,10 @@ io.on('connection', (socket) => {
       input.deviceId = payload.deviceId;
       input.dir = payload.dir;
     }
+    if (payload.action === ACTIONS.CLAIM_ORB) {
+      if (typeof payload.orbId !== 'string' || !/^o\d{1,6}$/.test(payload.orbId)) return;
+      input.orbId = payload.orbId;
+    }
     io.to(ref.room.screenId).emit(EV.PLAYER_INPUT, input);
   });
 
@@ -326,14 +352,19 @@ io.on('connection', (socket) => {
     io.to(phonesOf(room.code)).emit(EV.GAME_PHASE, payload);
   });
 
-  on(socket, EV.SCORE_SUBMIT, (payload, ack) => {
+  on(socket, EV.SCORE_SUBMIT, async (payload, ack) => {
+    const reply = replyFn(ack);
     const room = screenRoom(socket);
-    if (!room) return replyFn(ack)({ rank: 0, top: highScores });
     // One submission per finished run; a room can't spam the board.
     const now = Date.now();
-    if (now - (room.lastScoreAt || 0) < 5000) return replyFn(ack)({ rank: 0, top: highScores });
+    if (!room || now - (room.lastScoreAt || 0) < 5000) return reply({ rank: 0, top: [] });
     room.lastScoreAt = now;
-    replyFn(ack)(submitScore(payload));
+    try {
+      reply(await submitScore(payload));
+    } catch (err) {
+      console.error('[scores] save failed', err.message);
+      reply({ rank: 0, top: [], error: 'Leaderboard unavailable' });
+    }
   });
 
   on(socket, EV.AI_REQUEST, async (payload = {}) => {
@@ -454,5 +485,6 @@ server.listen(PORT, () => {
   if (addrs.length > 1) console.log(`  Other IPs  : ${addrs.slice(1).map((a) => `${a.address} (${a.name})`).join(', ')}`);
   console.log(`  Limits     : ${MAX_PLAYERS_PER_ROOM} players per room, ${MAX_ROOMS} rooms`);
   console.log(`  Health     : http://localhost:${PORT}/api/health`);
+  console.log(`  Scores     : ${scores.kind === 'upstash' ? 'Upstash (permanent)' : 'data/scores.json (set UPSTASH_REDIS_REST_URL + _TOKEN to keep them on Render)'}`);
   console.log(`  AI         : ${AI_ENABLED ? `on (${OPENAI_MODEL})` : 'off, canned lines (set OPENAI_API_KEY + OPENAI_MODEL)'}\n`);
 });

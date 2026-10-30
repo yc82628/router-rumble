@@ -46,7 +46,7 @@ function pick(list, rand) {
 function spawnBot(state, rand, cfg, fromRouterId = null, options = {}) {
   const count = (r) => state.bots.filter((b) => b.routerId === r.id).length;
   const targets = state.routers.filter(
-    (r) => r.status !== 'crashed' && r.id !== fromRouterId &&
+    (r) => r.status !== 'crashed' && r.id !== fromRouterId && !(r.vpnTimer > 0) &&
       (!options.targetRouterId || r.id === options.targetRouterId) && count(r) < ENEMY.maxBotsPerAP,
   );
   const r = pick(targets, rand);
@@ -76,13 +76,14 @@ function spawnBot(state, rand, cfg, fromRouterId = null, options = {}) {
 /** A virus gets one chance to copy itself to a neighbouring AP, then becomes harmless. */
 function spreadVirus(state, bot, rand, dt) {
   if (!bot.virus || bot.spreadDepth >= bot.spreadLimit || !Number.isFinite(bot.spreadTimer)) return;
+  if (state.routers.find((r) => r.id === bot.routerId)?.vpnTimer > 0) return; // VPN: can't spread out
   bot.spreadTimer -= dt;
   if (bot.spreadTimer > 0) return;
 
   const source = state.routers.find((r) => r.id === bot.routerId);
   if (!source) return;
   const targets = state.routers.filter((r) =>
-    Math.abs(r.index - source.index) === 1 &&
+    Math.abs(r.index - source.index) === 1 && !(r.vpnTimer > 0) &&
     r.status !== 'crashed' &&
     state.bots.filter((other) => other.routerId === r.id).length < ENEMY.maxBotsPerAP,
   );

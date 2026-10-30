@@ -31,9 +31,9 @@ export const EV = Object.freeze({
   ROOM_CLOSED: 'room:closed',
   // screen → server → all phones  { phase, level, levelName?, result? }
   GAME_PHASE: 'game:phase',
-  // screen → server  { score, level, stars, players: [names] }  a finished run (game over)
-  //                  ack → { rank (1-based, 0 = not in top), top: [{ team, score, level, stars }] }
-  //                  GET /api/leaderboard returns the same `top` list.
+  // screen → server  { score, level, stars, team, players: [names], mode: 'normal'|'daily' }  a finished run
+  //                  ack → { rank (1-based, 0 = not in top), board, top: [{ team, score, level, stars, at }] }
+  //                  GET /api/leaderboard?board=today|week|all|daily returns { board, top, day }.
   SCORE_SUBMIT: 'score:submit',
   // screen → server  { requestId, context }
   AI_REQUEST: 'ai:request',
@@ -52,6 +52,8 @@ export const ACTIONS = Object.freeze({
   //   phone:  { deviceId, dir: 'left'|'right' }  only devices on an AP the player runs, to a neighbour
   //   screen: { deviceId, routerId }             the big screen's mouse can move anything anywhere
   MOVE_DEVICE: 'moveDevice',
+  // { orbId }: grab a power-up orb (first tap wins; it fires on the player's active AP)
+  CLAIM_ORB: 'claimOrb',
 });
 export const ACTION_LIST = Object.freeze(Object.values(ACTIONS));
 

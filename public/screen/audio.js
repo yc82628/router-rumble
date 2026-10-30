@@ -116,6 +116,11 @@ export const sfx = {
     tone(80, 1.0, { type: 'sine', vol: 0.22, slide: -50 });
     [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.2, { type: 'triangle', vol: 0.05, delay: 0.5 + i * 0.1 }));
   },
+  orbSpawn: () => [988, 1319].forEach((f, i) => tone(f, 0.18, { type: 'sine', vol: 0.05, delay: i * 0.09 })),
+  orbClaim: () => {
+    [523, 784, 1047, 1568].forEach((f, i) => tone(f, 0.14, { type: 'square', vol: 0.045, delay: i * 0.05 }));
+    noise(0.3, { vol: 0.08, freq: 3000, sweep: 4000 });
+  },
   pass: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.06, delay: i * 0.12 })),
   fail: () => [392, 330, 262, 196].forEach((f, i) => tone(f, 0.3, { type: 'sawtooth', vol: 0.05, delay: i * 0.18 })),
 };

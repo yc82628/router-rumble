@@ -11,6 +11,8 @@ import { createRenderer, fmtTime } from './render.js';
 import { createCommander } from './commander.js';
 import { sfx, unlockAudio, toggleMute, startMusic, stopMusic, setIntensity } from './audio.js';
 import { cipherReveal } from '../shared/cipher.js';
+import { dailyChallenge } from './daily.js';
+import { ORB_TYPES } from './powerups.js';
 
 const $ = (id) => document.getElementById(id);
 const socket = window.io();
@@ -78,10 +80,15 @@ function colorForPlayer(playerId) {
 }
 const log = (text, kind) => renderer.log(text, kind, state ? state.time : 0);
 
+// 'normal' = levels 1-4 in a row; 'daily' = today's one-off challenge (daily.js).
+let mode = 'normal';
+let daily = dailyChallenge();
+const currentLevel = () => (mode === 'daily' ? daily.level : LEVELS[levelIndex]);
+
 function aiContext(extra = {}) {
   return {
     level: levelIndex + 1,
-    levelName: LEVELS[levelIndex].name,
+    levelName: currentLevel().name,
     score: Math.floor(state?.score ?? 0),
     crashes: state?.crashes ?? 0,
     health: Math.round(state?.health ?? 100),
@@ -97,7 +104,7 @@ function setPhase(next, extra = {}) {
   if (next !== phase && (next === PHASES.LOBBY || next === PHASES.COUNTDOWN)) $('intel-drawer').open = next === PHASES.LOBBY;
   phase = next;
   document.body.dataset.phase = next;
-  socket.emit(EV.GAME_PHASE, { phase: next, level: levelIndex + 1, levelName: LEVELS[levelIndex].name, ...extra });
+  socket.emit(EV.GAME_PHASE, { phase: next, level: levelIndex + 1, levelName: currentLevel().name, ...extra });
 }
 
 /** Lobby shows level 1's network with every joined phone attached as a device. */
@@ -108,7 +115,9 @@ function buildPreview() {
 
 function toLobby() {
   stopMusic();
+  mode = 'normal';
   levelIndex = 0;
+  renderDaily();
   buildPreview();
   renderer.clearFx();
   releaseGrab(); // a device picked with the mouse belongs to the old level
@@ -121,22 +130,31 @@ function toLobby() {
 let runScore = 0;
 let runStars = 0;
 
-function startLevel(i) {
+function startLevel(i, asDaily = false) {
   unlockAudio();
   if (phase === PHASES.LOBBY || phase === PHASES.GAME_OVER) {
     runScore = 0;
     runStars = 0;
   }
-  levelIndex = ((i % LEVELS.length) + LEVELS.length) % LEVELS.length;
-  const level = LEVELS[levelIndex];
-  state = createState({ level, levelIndex, players: rosterList(), seed: Date.now() });
+  mode = asDaily ? 'daily' : 'normal';
+  if (asDaily) {
+    daily = dailyChallenge(); // re-read the date: the lobby may have been open since yesterday
+    levelIndex = daily.levelIndex;
+  } else {
+    levelIndex = ((i % LEVELS.length) + LEVELS.length) % LEVELS.length;
+  }
+  const level = currentLevel();
+  // Daily runs use the day's seed, so every team in the world faces the same surges and enemies.
+  state = createState({ level, levelIndex, players: rosterList(), seed: asDaily ? daily.seed : Date.now() });
   tick(state, 0, []);
   inputs = [];
   renderer.clearFx();
   releaseGrab(); // device ids restart each level, so an old selection could move the wrong device
   commander.setMood('calm');
   $('overlay-end').hidden = true;
-  $('countdown-level').textContent = `LEVEL ${levelIndex + 1} // ${level.name.toUpperCase()}`;
+  $('countdown-level').textContent = asDaily
+    ? `DAILY CHALLENGE // ${daily.name.toUpperCase()}`
+    : `LEVEL ${levelIndex + 1} // ${level.name.toUpperCase()}`;
   cipherReveal($('countdown-level'), { duration: 1000 });
   $('countdown-tagline').textContent = level.tagline || '';
   $('overlay-countdown').hidden = false;
@@ -158,7 +176,7 @@ function beginPlay() {
 function endLevel() {
   stopMusic();
   const passed = state.result === 'passed';
-  const hasNext = levelIndex < LEVELS.length - 1;
+  const hasNext = mode === 'normal' && levelIndex < LEVELS.length - 1;
   const gameOver = !(passed && hasNext);
   const stars = starsFor(state);
   const team = leaderboard(state);
@@ -175,10 +193,13 @@ function endLevel() {
   $('end-stars').textContent = passed ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '';
   $('end-mvp').textContent = mvp ? `MVP: ${mvp.name} (${mvp.points.toLocaleString('en-US')} pts)` : '';
   $('end-run').textContent = `Run total: ${runScore.toLocaleString('en-US')} pts`;
-  $('end-rank').textContent = gameOver ? 'Submitting to the high-score board…' : '';
+  $('end-rank').textContent = gameOver ? 'Submitting to the leaderboard…' : '';
+  $('end-board').hidden = !gameOver;
   if (gameOver) submitRun();
 
-  $('end-title').textContent = passed ? (hasNext ? 'LEVEL CLEARED' : 'INTERNET SAVED') : 'NETWORK DOWN';
+  $('end-title').textContent = mode === 'daily'
+    ? (passed ? 'DAILY CLEARED' : 'DAILY FAILED')
+    : passed ? (hasNext ? 'LEVEL CLEARED' : 'INTERNET SAVED') : 'NETWORK DOWN';
   $('end-title').className = passed ? 'good' : 'bad';
   $('end-sub').textContent = passed
     ? state.boss
@@ -259,6 +280,17 @@ function onSimEvent(e) {
     case 'streakLost':
       log(`Streak x${e.mult} lost`, 'bad');
       break;
+    case 'orbSpawn':
+      sfx.orbSpawn();
+      break;
+    case 'orbClaimed': {
+      const t = ORB_TYPES[e.orbType];
+      renderer.fx(e);
+      renderer.banner(`${t.icon} ${e.by} grabbed ${t.label} → ${e.router}: ${t.desc}`, 'tutorial', 3500);
+      log(`${e.by} used ${t.label} on ${e.router}`, 'good');
+      sfx.orbClaim();
+      break;
+    }
     case 'tutorial':
       renderer.banner(e.text, 'tutorial', 6000);
       log(e.text, 'info');
@@ -484,9 +516,9 @@ socket.on(EV.PLAYER_LEFT, ({ playerId }) => {
   updateRoomCount();
 });
 
-socket.on(EV.PLAYER_INPUT, ({ playerId, action, deviceId, dir }) => {
+socket.on(EV.PLAYER_INPUT, ({ playerId, action, deviceId, dir, orbId }) => {
   if (phase !== PHASES.PLAYING || !roster.has(playerId)) return;
-  inputs.push({ playerId, action, deviceId, dir });
+  inputs.push({ playerId, action, deviceId, dir, orbId });
 });
 
 socket.on(EV.AI_LINE, (msg) => commander.onAILine(msg));
@@ -568,8 +600,9 @@ canvas.addEventListener('pointercancel', releaseGrab);
 // ------------------------------------------------------------------ controls
 
 $('btn-start').addEventListener('click', () => startLevel(0));
+$('btn-daily').addEventListener('click', () => startLevel(0, true));
 $('btn-next').addEventListener('click', () => startLevel(levelIndex + 1));
-$('btn-retry').addEventListener('click', () => startLevel(levelIndex));
+$('btn-retry').addEventListener('click', () => startLevel(levelIndex, mode === 'daily'));
 $('btn-lobby').addEventListener('click', toLobby);
 
 window.addEventListener('keydown', (e) => {
@@ -594,7 +627,11 @@ window.addEventListener('keydown', (e) => {
 
 // ------------------------------------------------------------------ high scores + full screen
 
-function renderHighScores(top = [], highlight = 0) {
+// Leaderboards: Today / This week / All-time / Daily challenge (server keeps every run).
+const BOARD_TITLES = { today: "TODAY'S TOP 10", week: 'THIS WEEK', all: 'ALL-TIME', daily: 'DAILY CHALLENGE' };
+let activeBoard = 'today';
+
+function renderHighScores(top = [], highlight = 0, target = 'highscores') {
   const rows = top.length
     ? top.map((e, i) => {
         const li = document.createElement('li');
@@ -608,31 +645,65 @@ function renderHighScores(top = [], highlight = 0) {
         return li;
       })
     : [Object.assign(document.createElement('li'), { className: 'muted', textContent: 'No scores yet. Be the first!' })];
-  for (const id of ['highscores', 'end-highscores']) $(id).replaceChildren(...rows.map((r) => r.cloneNode(true)));
+  $(target).replaceChildren(...rows);
 }
 
-async function loadHighScores() {
+async function loadHighScores(boardName = activeBoard) {
+  activeBoard = boardName;
+  for (const tab of document.querySelectorAll('[data-board]')) tab.setAttribute('aria-selected', String(tab.dataset.board === boardName));
   try {
-    renderHighScores((await (await fetch('/api/leaderboard')).json()).top);
+    renderHighScores((await (await fetch(`/api/leaderboard?board=${boardName}`)).json()).top);
   } catch { /* offline: keep whatever is shown */ }
+}
+for (const tab of document.querySelectorAll('[data-board]')) tab.addEventListener('click', () => loadHighScores(tab.dataset.board));
+
+// Team name for the leaderboard: the host can type one, or roll a random one.
+const TEAM_A = ['Packet', 'Neon', 'Rogue', 'Static', 'Signal', 'Firewall', 'Ping', 'Proxy', 'Glitch', 'Router'];
+const TEAM_B = ['Pirates', 'Squad', 'Wizards', 'Ninjas', 'Raccoons', 'Crew', 'Gremlins', 'Phantoms', 'Rangers', 'Goblins'];
+const randomTeam = () =>
+  `${TEAM_A[Math.floor(Math.random() * TEAM_A.length)]} ${TEAM_B[Math.floor(Math.random() * TEAM_B.length)]} ${10 + Math.floor(Math.random() * 90)}`;
+const teamInput = $('team-name');
+try { teamInput.value = sessionStorage.getItem('rr:team') || randomTeam(); } catch { teamInput.value = randomTeam(); }
+const saveTeam = () => { try { sessionStorage.setItem('rr:team', teamInput.value.trim()); } catch { /* private mode */ } };
+teamInput.addEventListener('change', saveTeam);
+teamInput.addEventListener('keydown', (e) => e.stopPropagation()); // typing "s" or "l" shouldn't start a level
+$('btn-team-roll').addEventListener('click', () => { teamInput.value = randomTeam(); saveTeam(); });
+saveTeam();
+
+/** Today's daily challenge card in the lobby. */
+function renderDaily() {
+  daily = dailyChallenge();
+  $('daily-name').textContent = daily.name;
+  $('daily-desc').textContent = daily.desc;
+  $('btn-daily').setAttribute('aria-label', `Play today's daily challenge: ${daily.name}. ${daily.desc}`);
 }
 
 function submitRun() {
   socket.timeout(4000).emit(
     EV.SCORE_SUBMIT,
-    { score: runScore, level: levelIndex + 1, stars: runStars, players: rosterList().map((p) => p.name) },
+    {
+      score: runScore,
+      level: levelIndex + 1,
+      stars: runStars,
+      team: teamInput.value.trim(),
+      players: rosterList().map((p) => p.name),
+      mode,
+    },
     (err, res) => {
-      if (err || !res) {
-        $('end-rank').textContent = 'High-score board unavailable right now.';
+      if (err || !res || res.error) {
+        $('end-rank').textContent = 'Leaderboard unavailable right now.';
         return;
       }
-      renderHighScores(res.top, res.rank);
+      const where = res.board === 'daily' ? "on today's daily challenge" : 'today';
+      $('end-board-title').textContent = BOARD_TITLES[res.board] || BOARD_TITLES.today;
+      renderHighScores(res.top, res.rank, 'end-highscores');
       $('end-rank').textContent = res.rank === 1
-        ? '🏆 NEW HIGH SCORE! #1 on the server!'
+        ? `🏆 NEW HIGH SCORE! #1 ${where}!`
         : res.rank
-          ? `You placed #${res.rank} on the high-score board!`
+          ? `${teamInput.value.trim() || 'Your team'} placed #${res.rank} ${where}!`
           : `Top 10 needs ${res.top.at(-1)?.score.toLocaleString('en-US') ?? 'more'} pts. Play again?`;
       if (res.rank === 1) sfx.pass();
+      if (phase === PHASES.LOBBY) loadHighScores();
     },
   );
 }
@@ -683,10 +754,15 @@ $('btn-rotate-skip').addEventListener('click', () => {
 syncRotateHint();
 
 document.body.dataset.phase = phase;
+renderDaily();
 loadHighScores();
 cipherReveal(document.querySelector('.brand'));
 cipherReveal(document.querySelector('#lobby-title h1'), { delay: 200 });
-setInterval(() => phase === PHASES.LOBBY && loadHighScores(), 15000);
+setInterval(() => {
+  if (phase !== PHASES.LOBBY) return;
+  loadHighScores();
+  renderDaily(); // rolls over at midnight UTC
+}, 15000);
 buildPreview();
 renderer.hud(state);
 commander.react('boot');
