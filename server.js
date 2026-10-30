@@ -3,7 +3,7 @@
 //
 // Rooms: every big screen that connects gets a room with a 4-letter code. Phones join by code
 // (the QR code carries it). Many rooms can run at once; each holds up to MAX_PLAYERS_PER_ROOM.
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import { createServer } from 'node:http';
 import os from 'node:os';
@@ -17,6 +17,10 @@ import { createScoreStore, board, BOARDS, utcDay } from './scores.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+// Local settings and secrets: .env.local first, then .env (the first file to set a value wins).
+// Both are git-ignored; on Render, set the same keys in the service's Environment tab instead.
+dotenv.config({ path: [path.join(__dirname, '.env.local'), path.join(__dirname, '.env')] });
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_URL = (process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '');
