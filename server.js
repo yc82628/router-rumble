@@ -56,6 +56,7 @@ app.get('/api/health', (_req, res) => {
     sockets: io.engine.clientsCount,
     memoryMB: Math.round(process.memoryUsage().rss / 1048576),
     uptimeS: Math.round(process.uptime()),
+    scores: scores.kind, // 'upstash' = permanent leaderboards, 'file' = data/scores.json
   });
 });
 app.get('/api/leaderboard', async (req, res) => {
