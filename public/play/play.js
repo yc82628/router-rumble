@@ -444,7 +444,7 @@ function renderControl() {
   $('c-points').textContent = `${(s.points || 0).toLocaleString('en-US')} pts${s.teamSize > 1 ? ` · #${s.rank}` : ''}`;
   $('c-mult').textContent = s.mult > 1 ? `🔥x${s.mult}` : '';
   const powers = [
-    s.hotspotLeft > 0 && `📡 HOTSPOT ${Math.ceil(s.hotspotLeft)}s`,
+    s.repeaterLeft > 0 && `📶 REPEATER ${Math.ceil(s.repeaterLeft)}s`,
     s.vpnLeft > 0 && `🔒 VPN ${Math.ceil(s.vpnLeft)}s`,
   ].filter(Boolean);
   $('c-powers').hidden = !powers.length;
@@ -508,7 +508,8 @@ syncFullscreenButtons();
 cipherReveal(document.querySelector('#view-join h1'));
 // ------------------------------------------------------------------ power-up orbs
 // Orbs drift across every phone at once; the first player to tap one grabs it, and it fires on
-// their AP (HOTSPOT, VPN) or on the whole network (ANTIVIRUS, LOAD BALANCER).
+// their AP (REPEATER, VPN) or on the whole network (ANTIVIRUS, LOAD BALANCER, REBOOT). A PHISHING
+// decoy looks like a real orb but flickers red; tapping it lets a bot into your AP.
 
 const orbEls = new Map(); // orbId -> button
 
@@ -528,12 +529,13 @@ function renderOrbs(s) {
   if (phase.phase !== PHASES.PLAYING) return;
   for (const o of s.orbs || []) {
     if (orbEls.has(o.id)) continue;
-    const t = ORB_TYPES[o.type];
+    const phish = o.type === 'phishing';
+    const t = ORB_TYPES[phish ? o.looks : o.type];
     if (!t) continue;
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'orb';
-    el.setAttribute('aria-label', `Grab ${t.label}: ${t.desc}`);
+    el.className = phish ? 'orb phish' : 'orb';
+    el.setAttribute('aria-label', `Grab ${t.label}: ${t.desc}${phish ? ' (it flickers red, looks suspicious)' : ''}`);
     el.style.setProperty('--orb', t.color);
     // a random drift path across the middle of the screen
     const rnd = (a, b) => `${Math.round(a + Math.random() * (b - a))}%`;

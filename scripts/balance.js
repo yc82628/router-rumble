@@ -25,7 +25,7 @@ const ratio = (r) => (r.status === 'crashed' ? 9 : r.load / effectiveCapacity(r)
 function botInputs(s, teamSize) {
   const can = (c) => !s.level.controls || s.level.controls.includes(c);
   const out = [];
-  for (const o of s.orbs) out.push({ playerId: 'p0', action: 'claimOrb', orbId: o.id }); // grab every orb
+  for (const o of s.orbs) if (o.type !== 'phishing') out.push({ playerId: 'p0', action: 'claimOrb', orbId: o.id }); // grab every real orb
   const bossOn = s.boss && ['arriving', 'attacking'].includes(s.boss.phase);
   for (const r of s.routers) {
     const act = (action) => out.push({ routerId: r.id, action });

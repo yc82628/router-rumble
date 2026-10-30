@@ -286,6 +286,13 @@ function onSimEvent(e) {
     case 'orbClaimed': {
       const t = ORB_TYPES[e.orbType];
       renderer.fx(e);
+      if (e.orbType === 'phishing') {
+        const fake = ORB_TYPES[e.looks]?.label || 'orb';
+        renderer.banner(`🎣 PHISHED! ${e.by}'s ${fake} was a fake. A bot got into ${e.router}!`, 'event', 4000);
+        log(`${e.by} fell for a phishing orb on ${e.router}`, 'bad');
+        sfx.phished();
+        break;
+      }
       renderer.banner(`${t.icon} ${e.by} grabbed ${t.label} → ${e.router}: ${t.desc}`, 'tutorial', 3500);
       log(`${e.by} used ${t.label} on ${e.router}`, 'good');
       sfx.orbClaim();

@@ -45,10 +45,13 @@ export const TUNING = {
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const round1 = (v) => Math.round(v * 10) / 10;
 
-/** mulberry32 on state.seed: deterministic per level. */
-export function random(state) {
-  state.seed = (state.seed + 0x6d2b79f5) | 0;
-  let t = state.seed;
+/**
+ * mulberry32 on state.seed: deterministic per level. Power-up orbs draw from their own stream
+ * (key 'orbSeed') so adding or tuning orbs never reshuffles a level's surges, joins and bots.
+ */
+export function random(state, key = 'seed') {
+  state[key] = (state[key] + 0x6d2b79f5) | 0;
+  let t = state[key];
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -56,7 +59,7 @@ export function random(state) {
 
 export const routerById = (state, id) => state.routers.find((r) => r.id === id);
 export const effectiveCapacity = (r) =>
-  r.capacity * (r.boostTimer > 0 ? TUNING.boostMul : 1) + (r.hotspotTimer > 0 ? ORB.hotspotCapacity : 0);
+  r.capacity * (r.boostTimer > 0 ? TUNING.boostMul : 1) + (r.repeaterTimer > 0 ? ORB.repeaterCapacity : 0);
 const playerDeviceCount = (r) => r.devices.reduce((n, d) => n + (d.kind === 'player' ? 1 : 0), 0);
 
 // ------------------------------------------------------------------ setup
@@ -88,7 +91,7 @@ export function createState({ level, levelIndex = 0, players = [], seed = 1 }) {
     fixPulse: 0,
     eventMul: 1,
     botLoad: 0, // bandwidth eaten by bots / the boss (enemies.js)
-    hotspotTimer: 0, // power-ups (powerups.js)
+    repeaterTimer: 0, // power-ups (powerups.js)
     vpnTimer: 0,
     ownerIds: [],
   }));
@@ -134,6 +137,7 @@ export function createState({ level, levelIndex = 0, players = [], seed = 1 }) {
     joinsFired: 0,
     result: null,
     seed: seed | 0,
+    orbSeed: (seed ^ 0x5bd1e995) | 0,
     emitted: [],
   };
   routers.forEach((r, i) => {
@@ -228,7 +232,7 @@ export function tick(state, dt, inputs = []) {
   runEvents(state, dt);
   runDevices(state, dt);
   runEnemies(state, dt, () => random(state));
-  runOrbs(state, dt, () => random(state));
+  runOrbs(state, dt, () => random(state, 'orbSeed'));
   runTimers(state, dt);
   computeDemand(state);
   computeLoads(state);
@@ -264,8 +268,13 @@ function applyInput(state, input) {
     return;
   }
   if (input.action === ACTIONS.CLAIM_ORB) {
-    const claimed = player && claimOrb(state, player, input.orbId, routerById(state, player.activeRouter));
-    if (claimed) {
+    const router = routerById(state, player?.activeRouter);
+    const claimed = player && claimOrb(state, player, input.orbId, router, () => random(state, 'orbSeed'));
+    if (claimed?.type === 'phishing') {
+      state.points[player.id] = Math.max(0, (state.points[player.id] || 0) - ORB.phishPenalty);
+      notify(state, player.id, `-${ORB.phishPenalty} 🎣 PHISHED! A bot got in`, 'big');
+      notify(state, '*', `${player.name} fell for a PHISHING orb 🎣`, 'team');
+    } else if (claimed) {
       const t = ORB_TYPES[claimed.type];
       award(state, player, ORB.claimPoints, `${t.icon} ${t.label}!`, 'big');
       notify(state, '*', `${player.name} grabbed ${t.label} ${t.icon}`, 'team');
@@ -716,7 +725,7 @@ export function playerView(state, playerId) {
     status: r.status,
     boostReadyIn: round1(r.boostCooldown),
     boostLeft: round1(r.boostTimer),
-    hotspotLeft: round1(r.hotspotTimer),
+    repeaterLeft: round1(r.repeaterTimer),
     vpnLeft: round1(r.vpnTimer),
     crashLeft: round1(r.crashTimer),
     overload: clamp(r.overTime / TUNING.overloadSeconds, 0, 1),
@@ -727,7 +736,7 @@ export function playerView(state, playerId) {
     cableNeeded: TUNING.cableFixTaps,
     points: Math.floor(state.points[playerId] || 0),
     controls: state.level.controls ?? null, // null = all controls unlocked
-    orbs: state.orbs.map((o) => ({ id: o.id, type: o.type, ttl: round1(o.ttl) })),
+    orbs: state.orbs.map((o) => ({ id: o.id, type: o.type, looks: o.looks, ttl: round1(o.ttl) })),
     feedbackRun: state.runId,
     feedback: state.feedback
       .filter((f) => f.playerId === playerId || f.playerId === '*')

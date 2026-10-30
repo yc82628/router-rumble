@@ -3,45 +3,61 @@
 // Orbs drift around the map (levels with `orbs` in levels.js). The same orb floats across every
 // phone; the first player to tap it claims it and it fires on their access point:
 //
-//   HOTSPOT        a temporary Wi-Fi hotspot beside your AP: +40 capacity for 10 s
+//   REPEATER       a Wi-Fi repeater docks beside your AP and widens its range: +40 capacity for 10 s
 //   VPN            encrypts your AP for 15 s: bots and viruses can't latch on or spread through it
 //   ANTIVIRUS      network-wide scan: wipes every bot, virus and droid on the map
 //   LOAD BALANCER  evens out traffic across all APs for 6 s
+//   REBOOT         power-cycles the network: every crashed AP comes back online at once
+//   PHISHING       a decoy (levels with `orbs.phishing`): it looks like a real orb but flickers red.
+//                  Tap it and a bot gets into your AP. Look before you tap!
+
+import { phishBot } from './enemies.js';
 
 export const ORB = {
   life: 9, // seconds an unclaimed orb stays on screen
-  maxOnScreen: 2,
-  hotspotSeconds: 10,
-  hotspotCapacity: 40,
+  maxOnScreen: 3,
+  repeaterSeconds: 10,
+  repeaterCapacity: 40,
   vpnSeconds: 15,
   balancerSeconds: 6,
   claimPoints: 25,
+  phishPenalty: 20, // points lost for falling for a PHISHING orb
 };
 
 export const ORB_TYPES = {
-  hotspot: { label: 'HOTSPOT', icon: '📡', color: '#3df2ff', desc: '+40 capacity on your AP for 10 s' },
+  repeater: { label: 'REPEATER', icon: '📶', color: '#3df2ff', desc: '+40 capacity on your AP for 10 s' },
   vpn: { label: 'VPN', icon: '🔒', color: '#b38bff', desc: 'No bots or viruses on your AP for 15 s' },
   antivirus: { label: 'ANTIVIRUS', icon: '🛡', color: '#46ff8f', desc: 'Wipes every bot and virus on the network' },
   balancer: { label: 'LOAD BALANCER', icon: '⚖', color: '#ffd23d', desc: 'Evens out traffic on every AP for 6 s' },
+  reboot: { label: 'REBOOT', icon: '⚡', color: '#ffad73', desc: 'Every crashed AP comes back online' },
+  phishing: { label: 'PHISHING', icon: '🎣', color: '#ff526b', desc: 'A fake orb! It let a bot into your AP' },
 };
-const TYPE_LIST = Object.keys(ORB_TYPES);
+const REAL_TYPES = Object.keys(ORB_TYPES).filter((t) => t !== 'phishing');
 
 function spawnOrb(state, rand) {
-  // ANTIVIRUS is only offered when there's something to wipe, so it never lands as a dud.
+  // ANTIVIRUS and REBOOT are only offered when they'd do something, so they never land as duds.
   const enemies = state.bots.length > 0;
-  const pool = TYPE_LIST.filter((t) => t !== 'antivirus' || enemies);
-  const type = pool[Math.floor(rand() * pool.length)];
+  const crashed = state.routers.some((r) => r.status === 'crashed');
+  const pool = REAL_TYPES.filter((t) => (t !== 'antivirus' || enemies) && (t !== 'reboot' || crashed));
+  let type = pool[Math.floor(rand() * pool.length)];
+  let looks;
+  const phishing = state.level.orbs.phishing;
+  if (phishing && rand() < phishing) {
+    looks = type; // the decoy wears a real orb's icon and label
+    type = 'phishing';
+  }
   const angle = rand() * Math.PI * 2;
   state.orbs.push({
     id: `o${++state.orbSeq}`,
     type,
+    looks,
     x: 0.2 + rand() * 0.6, // map coordinates 0..1
     y: 0.25 + rand() * 0.35,
     vx: Math.cos(angle) * 0.05,
     vy: Math.sin(angle) * 0.04,
     ttl: ORB.life,
   });
-  state.emitted.push({ type: 'orbSpawn', orbType: type });
+  state.emitted.push({ type: 'orbSpawn', orbType: looks || type });
 }
 
 /** Spawning, drifting, expiry, and the countdowns of active effects. */
@@ -61,7 +77,7 @@ export function runOrbs(state, dt, rand) {
   state.orbs = state.orbs.filter((o) => o.ttl > 0);
 
   for (const r of state.routers) {
-    r.hotspotTimer = Math.max(0, (r.hotspotTimer || 0) - dt);
+    r.repeaterTimer = Math.max(0, (r.repeaterTimer || 0) - dt);
     r.vpnTimer = Math.max(0, (r.vpnTimer || 0) - dt);
   }
   state.balancerTimer = Math.max(0, state.balancerTimer - dt);
@@ -71,14 +87,17 @@ export function runOrbs(state, dt, rand) {
  * A player tapped an orb. Returns the claim, or null if it's gone (someone else was faster).
  * The effect lands on the player's active AP.
  */
-export function claimOrb(state, player, orbId, router) {
+export function claimOrb(state, player, orbId, router, rand) {
   const orb = state.orbs.find((o) => o.id === orbId);
   if (!orb || !router) return null;
   state.orbs = state.orbs.filter((o) => o !== orb);
-  const result = { type: orb.type, routerId: router.id, router: router.name, by: player.name, wiped: [] };
+  const result = {
+    type: orb.type, looks: orb.looks, routerId: router.id, router: router.name, by: player.name,
+    wiped: [], rebooted: [],
+  };
 
-  if (orb.type === 'hotspot') {
-    router.hotspotTimer = ORB.hotspotSeconds;
+  if (orb.type === 'repeater') {
+    router.repeaterTimer = ORB.repeaterSeconds;
   } else if (orb.type === 'vpn') {
     router.vpnTimer = ORB.vpnSeconds;
   } else if (orb.type === 'antivirus') {
@@ -86,6 +105,17 @@ export function claimOrb(state, player, orbId, router) {
     state.bots = [];
   } else if (orb.type === 'balancer') {
     state.balancerTimer = ORB.balancerSeconds;
+  } else if (orb.type === 'reboot') {
+    for (const r of state.routers) {
+      if (r.status !== 'crashed') continue;
+      r.status = 'ok';
+      r.crashTimer = 0;
+      r.overTime = 0;
+      result.rebooted.push(r.id);
+      state.emitted.push({ type: 'recover', routerId: r.id, name: r.name });
+    }
+  } else if (orb.type === 'phishing') {
+    phishBot(state, router.id, rand); // you clicked the link yourself, so even a VPN can't stop it
   }
   state.emitted.push({ type: 'orbClaimed', orbType: orb.type, ...result });
   return result;

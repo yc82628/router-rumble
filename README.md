@@ -128,15 +128,17 @@ runs fully offline.
 
 ## Power-ups, daily challenge and leaderboards
 
-**Power-up orbs** (levels 2–4, `powerups.js`): glowing orbs drift across the big screen *and*
+**Power-up orbs** (every level, `powerups.js`): glowing orbs drift across the big screen *and*
 every phone at once. The first player to tap one on their phone grabs it (+25 pts):
 
 | Orb | Effect |
 |---|---|
-| 📡 HOTSPOT | a temporary Wi-Fi hotspot beside your AP: +40 capacity for 10 s |
+| 📶 REPEATER | a Wi-Fi repeater docks beside your AP and widens its range: +40 capacity for 10 s |
 | 🔒 VPN | encrypts your AP for 15 s: bots and viruses can't latch on or spread through it |
 | 🛡 ANTIVIRUS | scans the whole network and wipes every bot, virus and droid |
 | ⚖ LOAD BALANCER | evens out traffic across all APs for 6 s |
+| ⚡ REBOOT | every crashed AP comes back online at once (only appears when something has crashed) |
+| 🎣 PHISHING | levels 3–4: a fake orb that looks real but flickers red. Tap it and a bot gets into your AP (−20 pts) |
 
 **Daily challenge** (`daily.js`): one level + one twist per UTC day, the same for every team
 in the world (the day also fixes the random seed). Twists: Surge Storm, Brownout (no BOOST),
@@ -195,7 +197,7 @@ router-rumble/
 │   ├── levels.js               level table (data only)
 │   ├── devices.js              device weights + factory (demand lives on devices)
 │   ├── enemies.js              minions, spreading viruses + OVERSEER boss and droids
-│   ├── powerups.js             power-up orbs: HOTSPOT, VPN, ANTIVIRUS, LOAD BALANCER
+│   ├── powerups.js             power-up orbs: REPEATER, VPN, ANTIVIRUS, LOAD BALANCER, REBOOT + PHISHING decoys
 │   ├── daily.js                daily challenge: one level + twist + seed per UTC day
 │   ├── events.js               chaos events (start/each/end hooks)
 │   ├── render.js               canvas map, packets, sparks, HUD panels

@@ -269,6 +269,10 @@ export function createRenderer(canvas, dom) {
         const q = lay.routers[lastState.routers.findIndex((r) => r.id === id)];
         if (q) burst(q.x, q.y - lay.R, 26, [C.green, C.bright], 200);
       }
+      for (const id of e.rebooted || []) {
+        const q = lay.routers[lastState.routers.findIndex((r) => r.id === id)];
+        if (q) burst(q.x, q.y, 34, [C.orange, C.yellow, C.bright], 220);
+      }
     } else if (e.type === 'linkFixed') {
       const link = lastState.links.find((l) => l.id === e.linkId);
       if (link) {
@@ -1307,14 +1311,23 @@ export function createRenderer(canvas, dom) {
 
   // ---------------------------------------------------------------- power-ups
 
-  /** Effects of claimed orbs: hotspot node, VPN shield, load-balancer pulse. */
+  /** Effects of claimed orbs: repeater node + range ripples, VPN shield, load-balancer pulse. */
   function drawPowerups(state) {
     const { R } = lay;
     for (const r of state.routers) {
       const p = lay.routers[r.index];
       if (!p) continue;
-      if (r.hotspotTimer > 0) {
-        // a little temporary Wi-Fi hotspot docked beside the AP
+      if (r.repeaterTimer > 0) {
+        // the AP's signal ripples further out (wider range) ...
+        for (let k = 0; k < 3; k++) {
+          const f = (clock * 0.6 + k / 3) % 1;
+          ctx.strokeStyle = rgba(C.cyan, 0.45 * (1 - f));
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, R * (1.1 + f), 0, TAU);
+          ctx.stroke();
+        }
+        // ... from a little Wi-Fi repeater docked beside it
         const hx = p.x + R * 1.55;
         const hy = p.y - R * 0.95;
         ctx.strokeStyle = rgba(C.cyan, 0.7);
@@ -1336,8 +1349,13 @@ export function createRenderer(canvas, dom) {
         ctx.strokeStyle = C.bright;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(hx, hy, R * 0.42 + 4, -Math.PI / 2, -Math.PI / 2 + TAU * (r.hotspotTimer / ORB.hotspotSeconds));
+        ctx.arc(hx, hy, R * 0.42 + 4, -Math.PI / 2, -Math.PI / 2 + TAU * (r.repeaterTimer / ORB.repeaterSeconds));
         ctx.stroke();
+        ctx.font = `bold 10px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = C.cyan;
+        ctx.fillText(`+${ORB.repeaterCapacity}`, hx, hy - R * 0.42 - 12);
       }
       if (r.vpnTimer > 0) {
         // encrypted: a purple hex shield around the AP
@@ -1385,21 +1403,23 @@ export function createRenderer(canvas, dom) {
   /** Orbs drifting over the map, waiting for someone to grab them on their phone. */
   function drawOrbs(state) {
     for (const o of state.orbs) {
-      const t = ORB_TYPES[o.type];
+      const t = ORB_TYPES[o.looks || o.type]; // a PHISHING decoy wears a real orb's look ...
       if (!t) continue;
+      const glitch = o.type === 'phishing' && Math.sin(clock * 9 + o.x * 40) > 0.82; // ... but flickers red
+      const color = glitch ? C.red : t.color;
       const x = o.x * W;
       const y = o.y * H;
       const size = 20 + Math.sin(clock * 5 + o.x * 10) * 2;
       const fading = o.ttl < 2 ? 0.45 + 0.55 * Math.abs(Math.sin(clock * 12)) : 1;
       const g = ctx.createRadialGradient(x, y, size * 0.3, x, y, size * 2.4);
-      g.addColorStop(0, rgba(t.color, 0.45 * fading));
-      g.addColorStop(1, rgba(t.color, 0));
+      g.addColorStop(0, rgba(color, 0.45 * fading));
+      g.addColorStop(1, rgba(color, 0));
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(x, y, size * 2.4, 0, TAU);
       ctx.fill();
       ctx.fillStyle = rgba('#02130b', 0.9);
-      ctx.strokeStyle = rgba(t.color, fading);
+      ctx.strokeStyle = rgba(color, fading);
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(x, y, size, 0, TAU);
@@ -1417,8 +1437,8 @@ export function createRenderer(canvas, dom) {
       ctx.fillStyle = C.bright;
       ctx.fillText(t.icon, x, y + 1);
       ctx.font = `bold 11px ${FONT}`;
-      ctx.fillStyle = rgba(t.color, fading);
-      ctx.fillText(t.label, x, y + size + 16);
+      ctx.fillStyle = rgba(color, fading);
+      ctx.fillText(t.label, x + (glitch ? 2 : 0), y + size + 16);
       ctx.font = `9px ${FONT}`;
       ctx.fillStyle = rgba(C.text, fading);
       ctx.fillText('TAP IT ON YOUR PHONE', x, y + size + 29);

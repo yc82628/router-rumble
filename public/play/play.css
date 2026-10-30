@@ -360,8 +360,15 @@ button:focus-visible, input:focus-visible, .chip-dev:focus-visible { outline: 3p
 .orb.gone { opacity: 0; transition: opacity .3s; }
 @keyframes orb-drift { to { left: var(--x1); top: var(--y1); } }
 @keyframes orb-in { from { transform: scale(0); } to { transform: scale(1); } }
+/* PHISHING decoy: a real orb's look, with a brief red glitch every couple of seconds */
+.orb.phish { animation: orb-drift 3.2s ease-in-out infinite alternate, orb-in .35s ease-out, phish-flicker 1.9s steps(1) infinite; }
+@keyframes phish-flicker {
+  0%, 92% { border-color: var(--orb); box-shadow: 0 0 24px var(--orb), inset 0 0 18px var(--orb); }
+  86%, 95% { border-color: #ff526b; box-shadow: 0 0 24px #ff526b, inset 0 0 18px #ff526b; }
+}
 .powers { padding: 6px 10px; border: 1px solid var(--cyan); border-radius: 6px; color: var(--cyan); font-weight: 700; font-size: 14px; }
 .powers[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .orb { animation: none !important; }
+  .orb.phish { outline: 2px dashed #ff526b; outline-offset: 3px; } /* no flicker, so a steady tell */
 }

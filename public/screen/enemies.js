@@ -46,7 +46,7 @@ function pick(list, rand) {
 function spawnBot(state, rand, cfg, fromRouterId = null, options = {}) {
   const count = (r) => state.bots.filter((b) => b.routerId === r.id).length;
   const targets = state.routers.filter(
-    (r) => r.status !== 'crashed' && r.id !== fromRouterId && !(r.vpnTimer > 0) &&
+    (r) => r.status !== 'crashed' && r.id !== fromRouterId && (options.ignoreVpn || !(r.vpnTimer > 0)) &&
       (!options.targetRouterId || r.id === options.targetRouterId) && count(r) < ENEMY.maxBotsPerAP,
   );
   const r = pick(targets, rand);
@@ -71,6 +71,12 @@ function spawnBot(state, rand, cfg, fromRouterId = null, options = {}) {
   };
   state.bots.push(bot);
   return bot;
+}
+
+/** PHISHING: someone tapped a fake orb, so a minion flies straight into their AP, even past a VPN. */
+export function phishBot(state, routerId, rand) {
+  const { hp, drain } = state.level.bots || { hp: 3, drain: 12 };
+  return spawnBot(state, rand, { hp, drain }, null, { targetRouterId: routerId, ignoreVpn: true, virus: false });
 }
 
 /** A virus gets one chance to copy itself to a neighbouring AP, then becomes harmless. */

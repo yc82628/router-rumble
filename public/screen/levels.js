@@ -11,7 +11,8 @@
 // bots     { first, every, hp, drain }  mini bots that latch onto an AP and eat bandwidth (FIX zaps)
 // boss     the final boss, see enemies.js. Level is won by beating it `lives` times; no timer.
 // controls ['push','fix','boost','send']  phone controls unlocked on this level (missing = all)
-// orbs     { first, every }  power-up orbs players can grab (powerups.js); missing = none
+// orbs     { first, every, phishing? }  power-up orbs players can grab (powerups.js); phishing =
+//          chance (0..1) that an orb is a fake PHISHING decoy; missing = no orbs
 // tutorial { at, text } prompts shown as banners (keep them in time order)
 
 const ALL_EVENTS = ['giantDownload', 'routerReboot', 'ddos', 'cableCut', 'stream4k'];
@@ -32,6 +33,7 @@ export const LEVELS = [
     joins: { first: 26, every: 20, max: 2, kinds: ['phone', 'laptop', 'tv'], demandPerWeight: 6 },
     spikes: [{ at: 58, dur: 8, mul: 1.2, router: 1 }], // a gentle console update spike
     bots: { first: 36, every: 22, hp: 2, drain: 12 },
+    orbs: { first: 20, every: 16 },
     events: null,
     devices: [
       ['phone', 'laptop', 'tv'],
@@ -42,6 +44,7 @@ export const LEVELS = [
     tutorial: [
       { at: 1, text: 'Each phone runs one access point. Watch your load bar.' },
       { at: 14, text: 'Overloaded? PUSH traffic to a neighbour, but don\'t melt their AP.' },
+      { at: 20, text: 'A glowing orb! The first phone to tap it gets a power-up.' },
       { at: 26, text: 'Devices grow when they need more traffic. Push some of it away!' },
       { at: 34, text: 'A minion is coming. Tap FIX on its AP to zap it.' },
       { at: 54, text: 'FIX also revives a crashed AP. Tap it fast!' },
@@ -65,7 +68,7 @@ export const LEVELS = [
     ],
     // First virus wave is a readable warning, then each infected AP can copy it once.
     bots: { first: 26, every: 22, hp: 3, drain: 12, virus: true, spreadAfter: 12, spreadLimit: 1 },
-    orbs: { first: 22, every: 20 }, // power-up orbs (powerups.js)
+    orbs: { first: 12, every: 14 }, // power-up orbs (powerups.js)
     events: { first: 35, every: 0, max: 1, pool: ALL_EVENTS },
     devices: [
       ['laptop', 'laptop', 'phone'],
@@ -101,7 +104,7 @@ export const LEVELS = [
     ],
     // Faster, tougher viruses arrive amid more frequent chaos events.
     bots: { first: 12, every: 14, hp: 4, drain: 12, virus: true, spreadAfter: 10, spreadLimit: 1 },
-    orbs: { first: 14, every: 17 },
+    orbs: { first: 10, every: 12, phishing: 0.25 }, // 1 in 4 orbs is a PHISHING decoy
     events: { first: 15, every: 24, max: 3, pool: ALL_EVENTS },
     devices: [
       ['phone', 'phone', 'laptop'],
@@ -110,7 +113,10 @@ export const LEVELS = [
       ['console', 'laptop', 'phone'],
       ['phone', 'speaker', 'fridge'],
     ],
-    tutorial: [{ at: 3, text: 'VIRAL OUTBREAK. Contain each virus before it infects another AP!' }],
+    tutorial: [
+      { at: 3, text: 'VIRAL OUTBREAK. Contain each virus before it infects another AP!' },
+      { at: 10, text: 'Careful: some orbs are PHISHING traps. A red flicker means fake!' },
+    ],
   },
   {
     id: 4,
@@ -127,7 +133,7 @@ export const LEVELS = [
     spikes: [],
     events: null,
     bots: null, // the boss brings its own droids
-    orbs: { first: 12, every: 15 },
+    orbs: { first: 8, every: 11, phishing: 0.25 },
     boss: {
       name: 'OVERSEER',
       first: 5, // seconds before it first arrives

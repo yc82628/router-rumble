@@ -121,6 +121,10 @@ export const sfx = {
     [523, 784, 1047, 1568].forEach((f, i) => tone(f, 0.14, { type: 'square', vol: 0.045, delay: i * 0.05 }));
     noise(0.3, { vol: 0.08, freq: 3000, sweep: 4000 });
   },
+  phished: () => {
+    [880, 622, 440].forEach((f, i) => tone(f, 0.16, { type: 'sawtooth', vol: 0.05, delay: i * 0.08 }));
+    noise(0.25, { vol: 0.1, freq: 600 });
+  },
   pass: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.06, delay: i * 0.12 })),
   fail: () => [392, 330, 262, 196].forEach((f, i) => tone(f, 0.3, { type: 'sawtooth', vol: 0.05, delay: i * 0.18 })),
 };
